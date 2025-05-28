@@ -1,1 +1,2 @@
-# Notetaking-app
+# Editor
+A text editor
