@@ -2,7 +2,8 @@ Note taking app
 ![image](https://github.com/user-attachments/assets/9fc85efb-2b3e-457c-a0d9-5ff350828db8)
 
 You can customize the window
-![image](https://github.com/user-attachments/assets/0d14a42f-32f5-452c-b303-80953bd45361)
+![image](https://github.com/user-attachments/assets/8f8ccf70-8e28-4c48-9cb7-ff91526b956c)
+
 
 Or even add a custom color for underline, bucket or text color
 ![image](https://github.com/user-attachments/assets/7b4ffd8b-13e7-43a6-85d9-6b8f2ac26a1c)
