@@ -984,7 +984,6 @@ void Window::createTable() {
         int cols = colsSpin->value();
 
         QTextCursor cursor = edit->textCursor();
-        cursor.movePosition(QTextCursor::End);
         cursor.insertBlock();
 
        //the design of table
