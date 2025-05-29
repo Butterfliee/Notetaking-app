@@ -73,12 +73,15 @@ signals:
 private:
     void setNoteColor(const QString &colorName);
     void setAppColor(const QString &colorName);
+    void setToolbarColor(const QString &colorName);
+    void setAppFont(const QString &fontName);
     void dumpDataStructure();
     void setUnderlineColor(const QString &colorName);
     QColorDialog *color;
       QColor currentUnderlineColor;
     QColor currentbucketColor;
       QColor currentAppColor;
+    QColor currentToolbarColor;
       QColor currentNoteColor;
      int currentfontSize = 12;
     void setUnderlineStyle(const QString &underlineType);

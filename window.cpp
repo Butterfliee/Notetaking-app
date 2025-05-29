@@ -54,14 +54,7 @@ insertFile -> setShortcut(QKeySequence("Ctrl+O"));
   toggleMenuBar -> setCheckable(true);
   view -> addAction(toggleMenuBar);
 connect(toggleMenuBar, &QAction::triggered, this, &Window::ToggleMenubar);
-  //tools menu - options and commands of the app
-    tools = new QMenu("Tools");
-    tools -> setStyleSheet("background-color: #202020; color:white ");
-   topToolBar->addAction(tools->menuAction());
-    options = new QAction("Options");
-   tools -> addAction(options);
-    commandPallete = new QAction("Command pallete");
-   tools -> addAction(commandPallete);
+
       //the layout on the side for notebooks
    Notebooks = new QHBoxLayout(this);
 
@@ -740,10 +733,10 @@ void Window::appCustomTrigg() {
 
     //the list of colors it can use
     QList<QColor> appColors = {
-        Qt::black, Qt::red, Qt::green, Qt::blue, Qt::yellow, Qt::magenta, Qt::darkGray, Qt::white
+        Qt::black, Qt::red, Qt::green, Qt::blue, Qt::magenta, Qt::darkGray, Qt::white, Qt::cyan, QColor(255, 192, 203),  QColor(64,64,64)
     };
     QStringList appColorNames = {
-        "Black", "Red", "Green", "Blue", "Yellow", "Purple", "Dark Gray", "White"
+        "Black", "Red", "Green", "Blue",  "Purple", "Dark Gray", "White", "Cyan", "Pink", "Default"
     };
 
     for (int i = 0; i < appColors.size(); ++i) {
@@ -774,7 +767,7 @@ void Window::appCustomTrigg() {
     customLayout->addWidget(colorComboBox);
 
 
-    QLabel *NoteColors = new QLabel("NoteTree text");
+    QLabel *NoteColors = new QLabel("Text color");
     NoteColors->setStyleSheet("color:white;");
     customLayout->addWidget(NoteColors);
     QComboBox *NoteComboBox = new QComboBox(custom);
@@ -787,10 +780,10 @@ void Window::appCustomTrigg() {
 
     //the list of colors it can use
     QList<QColor> noteColors = {
-        Qt::black, Qt::red, Qt::green, Qt::blue, Qt::yellow, Qt::magenta, Qt::darkGray, Qt::white
+       Qt::black, Qt::red, Qt::green, Qt::blue, Qt::magenta, Qt::darkGray, Qt::white, Qt::cyan, QColor(255, 192, 203)
     };
     QStringList noteColorNames = {
-        "Black", "Red", "Green", "Blue", "Yellow", "Purple", "Dark Gray", "White"
+        "Black", "Red", "Green", "Blue",  "Purple", "Dark Gray", "White", "Cyan", "Pink",
     };
 
     for (int i = 0; i < noteColors.size(); ++i) {
@@ -815,12 +808,118 @@ void Window::appCustomTrigg() {
                 }
 
             });
-
     customLayout -> addWidget(NoteComboBox);
-      customLayout->addStretch(1);
+    QLabel *toolBarColors = new QLabel("Toolbar color");
+    toolBarColors->setStyleSheet("color:white;");
+    customLayout->addWidget(toolBarColors);
+    QComboBox *toolBarCombo = new QComboBox(custom);
+    customLayout -> addWidget(toolBarCombo);
+    toolBarCombo ->setStyleSheet(
+        "QComboBox { background-color: #303030; color: white; border: 1px solid #505050; padding: 5px; }"
+        "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: center right; width: 20px; }"
+        "QComboBox QAbstractItemView { background-color: #303030; color: white; selection-background-color: #505050; }"
+        "QComboBox QAbstractItemView::item { padding: 5px; }"
+        );
+
+    //the list of colors it can use
+    QList<QColor> toolBarColor = {
+         Qt::black, Qt::red, Qt::green, Qt::blue, Qt::magenta, Qt::darkGray, Qt::white, Qt::cyan, QColor(255, 192, 203),  QColor(32, 32, 32)
+    };
+    QStringList toolbarColorNames = {
+        "Black", "Red", "Green", "Blue",  "Purple", "Dark Gray", "White", "Cyan", "Pink", "Default"
+    };
+
+    for (int i = 0; i < toolBarColor.size(); ++i) {
+        QPixmap pix(16, 16);
+        pix.fill(toolBarColor.at(i));
+        toolBarCombo->addItem(QIcon(pix), toolbarColorNames.at(i));
+    }
+    toolBarCombo->addItem("Custom...");
+
+    //handling the possibility of custom option - let user pick color from pallete
+    connect(toolBarCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [this, toolBarCombo](int index) {
+                if (toolBarCombo->itemText(index) == "Custom...") {
+                    QColor newColor = QColorDialog::getColor(Qt::white, this, "Select Custom Color");
+                    if (newColor.isValid()) {
+                        setToolbarColor(newColor.name());
+
+                    }
+                } else {
+                    QString selectedColorName = toolBarCombo->itemText(index);
+                    setToolbarColor(selectedColorName);
+                }
+
+            });
+
+    QLabel *AppFont = new QLabel("Font");
+    AppFont->setStyleSheet("color:white;");
+    customLayout->addWidget(AppFont);
+
+    //the ComboBox fort font sizes and its stylesheet
+    QComboBox *AppFontCombo = new QComboBox(custom);
+    AppFontCombo ->setStyleSheet(
+        "QComboBox { background-color: #303030; color: white; border: 1px solid #505050; padding: 5px; }"
+        "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: center right; width: 20px; }"
+        "QComboBox QAbstractItemView { background-color: #303030; color: white; selection-background-color: #505050; }"
+        "QComboBox QAbstractItemView::item { padding: 5px; }"
+        );
+
+    //string where function picks which size to set based on its value
+    QStringList appfontTexts = {
+                                "Arial",
+                                "Courier New",
+                                "Consolas",
+                                "Comic Sans MS",
+                                "Roboto Mono",
+                                "Helvetica",
+                                "Times New Roman",
+                                "Georgia",
+                                "Sans Serif",
+                                "Calibri",
+                                "Noto Serif",
+                                "Lato"
+    };
+    //adding these values to combobox
+   AppFontCombo->addItems(appfontTexts);
+
+    //calling our functions where the sizes are defined by clicking on ComboBox item
+    connect(AppFontCombo, QOverload<int>::of(&QComboBox::activated),
+            this, [this, AppFontCombo](int index) {
+                QString selectedSize = AppFontCombo->currentText();
+                setAppFont(selectedSize);
+            });
+    customLayout->addWidget(AppFontCombo);
+
+
+     customLayout->addStretch(1);
     scrollBar->setWidget(custom);
     scrollBar->show();
 }
+
+void Window::setAppFont(const QString &fontName){
+    currentFont = fontName;
+    QFont newAppFont(fontName);
+
+
+    QString toolbarStyle = QString(
+                               "QToolBar { font-family: \"%1\";  }"
+                               "QToolBar QLabel { font-family: \"%1\";  }"
+                               "QToolBar QToolButton {font-family: \"%1\"; }"
+                               )
+                               .arg(fontName);
+
+    QString NoteStyle = QString(
+                               "QTreeView { font-family: \"%1\"; background-color:#202020; }"
+                               )
+                               .arg(fontName);
+
+    toolbar->setStyleSheet(toolbarStyle);
+    topToolBar -> setStyleSheet(toolbarStyle);
+    NoteTree -> setStyleSheet(NoteStyle);
+
+    }
+
 
 
 void Window::setAppColor(const QString &colorName) {
@@ -834,12 +933,8 @@ void Window::setAppColor(const QString &colorName) {
         color = Qt::green;
     } else if (colorName == "Blue") {
         color = Qt::blue;
-    } else if (colorName == "Yellow") {
-        color = Qt::yellow;
     } else if (colorName == "Purple") {
         color = QColor(128, 0, 128);
-    } else if (colorName == "Orange") {
-        color = QColor(255, 165, 0);
     } else if (colorName == "Gray") {
         color = Qt::gray;
     } else if (colorName == "White") {
@@ -848,6 +943,8 @@ void Window::setAppColor(const QString &colorName) {
         color = Qt::cyan;
     } else if (colorName == "Pink") {
         color = QColor(255, 192, 203);
+    } else if (colorName == "Default") {
+        color = QColor(64, 64, 64);
     } else if (colorName == "Custom...") {
         QColorDialog::getColor(QApplication::palette().color(QPalette::WindowText), this, "Choose Custom Color");
         if (!color.isValid()) {
@@ -878,12 +975,8 @@ void Window::setNoteColor(const QString &colorName) {
         color = Qt::green;
     } else if (colorName == "Blue") {
         color = Qt::blue;
-    } else if (colorName == "Yellow") {
-        color = Qt::yellow;
     } else if (colorName == "Purple") {
-        color = QColor(128, 0, 128); // Matches your defined purple
-    } else if (colorName == "Orange") {
-        color = QColor(255, 165, 0);
+        color = QColor(128, 0, 128);
     } else if (colorName == "Gray") {
         color = Qt::gray;
     } else if (colorName == "White") {
@@ -892,8 +985,6 @@ void Window::setNoteColor(const QString &colorName) {
         color = Qt::cyan;
     } else if (colorName == "Pink") {
         color = QColor(255, 192, 203);
-    } else if (colorName == "Dark Gray") {
-        color = Qt::darkGray;
     }
     else {
         color = QColor(colorName);
@@ -904,46 +995,141 @@ void Window::setNoteColor(const QString &colorName) {
     }
 
     QPalette palette = NoteTree->palette();
-    palette.setColor(QPalette::WindowText, color); // Sets the color for the text items in QTreeWidget
-    palette.setColor(QPalette::Text, color); // Also apply to QPalette::Text for robustness
+    palette.setColor(QPalette::WindowText, color);
+    palette.setColor(QPalette::Text, color);
     NoteTree->setPalette(palette);
-    NoteTree->update(); // Request a repaint
+    NoteTree->update();
     currentNoteColor = color.name();
+
+
+    if (toolbar) {
+         QString hexColor = color.name();
+
+        QString toolbarCombinedStyle = QString(
+                                           "QToolBar QLabel { color: %1; }"
+                                           "QToolBar QToolButton { color: %1; }"
+                                           )
+                                           .arg(hexColor);
+        toolbar->setStyleSheet(toolbarCombinedStyle);
+        topToolBar -> setStyleSheet(toolbarCombinedStyle);
+}
 }
 
-//action that increases the size of NoteTree and Menu Items in toolbar
-void Window::setfontSize(int size)
+void Window::setToolbarColor(const QString &colorName)
 {
-     QApplication::font().pointSize();
+    QColor color;
+    if (colorName == "Black") {
+        color = Qt::black;
+    } else if (colorName == "Red") {
+        color = Qt::red;
+    } else if (colorName == "Green") {
+        color = Qt::green;
+    } else if (colorName == "Blue") {
+        color = Qt::blue;
+    } else if (colorName == "Purple") {
+        color = QColor(128, 0, 128);
+    } else if (colorName == "Gray") {
+        color = Qt::gray;
+    } else if (colorName == "White") {
+        color = Qt::white;
+    } else if (colorName == "Cyan") {
+        color = Qt::cyan;
+    } else if (colorName == "Pink") {
+        color = QColor(255, 192, 203);
+    } else if (colorName == "Default") {
+        color = QColor(32, 32, 32);
+    }
+    else {
+        color = QColor(colorName);
+        if (!color.isValid()) {
 
+            color = Qt::black;
+        }
+    }
+
+    QString hexColor = color.name();
+
+    QString combinedStyleSheet = QString(
+
+                                     "QToolBar { background-color: %1; }"
+                                     "QToolBar QLabel { color: white;  }"
+                                     "QToolBar QToolButton { color: white; }"
+                                     "QTextEdit {color: white; }"
+                                     "QTreeView {color:white; }"
+
+
+                                     "QMenu { "
+                                     "background-color: %1; "
+                                     "border: 1px solid #505050; "
+                                     "}"
+                                     "QMenu::item { "
+                                     "background-color: transparent; "
+                                     "padding: 5px 20px; "
+                                     "color: white; "
+                                     "}"
+                                     "QMenu::item:selected { "
+                                     "background-color: #505050; "
+                                     "color: white; "
+                                     "}"
+                                     "QMenu::separator { "
+                                     "height: 1px; "
+                                     "background-color: #707070; "
+                                     "margin-left: 10px; "
+                                     "margin-right: 10px; "
+                                     "}"
+                                     ).arg(hexColor);
+
+
+    this->setStyleSheet(combinedStyleSheet);
+    currentToolbarColor = hexColor;
+}
+
+
+void Window::setfontSize(int size) {
     currentfontSize = size;
-
     QFont appFont = QApplication::font();
     appFont.setPointSize(currentfontSize);
     QApplication::setFont(appFont);
 
+    QString toolbarStyleTemplate = QString(
+        "QToolBar { font-size: %1pt; }"
+        "QToolBar QLabel { font-size: %1pt; }"
+        "QToolBar QToolButton { font-size: %1pt; }"
+        );
+
     if (toolbar) {
-        QFont toolbarFont = toolbar->font();
-        toolbarFont.setPointSize(currentfontSize);
-        toolbar->setFont(toolbarFont);
-        toolbar->update();
+        QString toolbarStyle = toolbarStyleTemplate.arg(currentfontSize);
+        toolbar->setStyleSheet(toolbarStyle);
     }
 
     if (topToolBar) {
-        QFont topToolbarFont = topToolBar->font();
-        topToolbarFont.setPointSize(currentfontSize);
-        topToolBar->setFont(topToolbarFont);
-         topToolBar->update();
+        QString topToolbarStyle = toolbarStyleTemplate.arg(currentfontSize);
+        topToolBar->setStyleSheet(topToolbarStyle);
+    }
+
+
+    QString menuStyleTemplate = QString(
+        "QMenu { font-size: %1pt; }"
+        "QMenu::item { font-size: %1pt; }"
+        "QMenu::item:selected { font-size: %1pt; }"
+        );
+
+    if (insert) {
+        QString insertMenuStyle = menuStyleTemplate.arg(currentfontSize);
+        insert->setStyleSheet(insertMenuStyle);
+    }
+    if (font) {
+        QString fontMenuStyle = menuStyleTemplate.arg(currentfontSize);
+        font->setStyleSheet(fontMenuStyle);
     }
 
     if (NoteTree) {
         QFont noteTreeFont = NoteTree->font();
         noteTreeFont.setPointSize(currentfontSize);
         NoteTree->setFont(noteTreeFont);
-        NoteTree->update();
     }
+}
 
-        }
 
 
 /*function for creating table, unfortunately i didnt manage to
@@ -1170,156 +1356,162 @@ void Window::doLine() {
     cursor.insertHtml("<hr>");
 }
 
+
 void Window::CodeBlock() {
- QTextCharFormat codeKeywordFormat;
-    QTextCharFormat codeCharFormat;
-    QTextBlockFormat codeBlockFormat;
- QTextCharFormat codeVariableFormat;
-    codeCharFormat.setFontFamily("Inconsolata");
+    // It's generally better to define these once (e.g., in constructor or a setup method)
+    // and store them as member variables, rather than recreating them every time.
+    // If you already have them as members, remove these local declarations.
+    QTextCharFormat localCodeKeywordFormat;
+    QTextCharFormat localCodeCharFormat;
+    QTextBlockFormat localCodeBlockFormat;
+    QTextCharFormat localCodeVariableFormat;
+    QTextCharFormat localCodeStringFormat;
+    QTextCharFormat localCodeCommentFormat;
+
+    // Initialize local formats (or use member variables if already defined)
+    localCodeCharFormat.setFontFamily("Inconsolata");
     if (!QFontDatabase::families().contains("Inconsolata")) {
-        codeCharFormat.setFontFamily("monospace");
+        localCodeCharFormat.setFontFamily("monospace");
     }
-    codeCharFormat.setFontFixedPitch(true);
-    codeCharFormat.setFontPointSize(10); // Don't forget pointSize here too!
-    codeCharFormat.setForeground(QColor("#DCDCDC"));
+    localCodeCharFormat.setFontFixedPitch(true);
+    localCodeCharFormat.setFontPointSize(10);
+    localCodeCharFormat.setForeground(QColor("#DCDCDC")); // Default code text color
 
-    // Code block container format (background, margins, no wrap)
-    codeBlockFormat.setBackground(QColor("#2B2B2B"));
-    codeBlockFormat.setTextIndent(0);
-    codeBlockFormat.setLeftMargin(20);
-    codeBlockFormat.setRightMargin(20);
-    codeBlockFormat.setTopMargin(5);
-    codeBlockFormat.setBottomMargin(5);
-    codeBlockFormat.setIndent(0);
-    codeBlockFormat.setNonBreakableLines(true);
+    localCodeBlockFormat.setBackground(QColor("#2B2B2B"));
+    localCodeBlockFormat.setTextIndent(0);
+    localCodeBlockFormat.setLeftMargin(20);
+    localCodeBlockFormat.setRightMargin(20);
+    localCodeBlockFormat.setTopMargin(5);
+    localCodeBlockFormat.setBottomMargin(5);
+    localCodeBlockFormat.setIndent(0);
+    localCodeBlockFormat.setNonBreakableLines(true);
 
-    // Keyword format (e.g., 'if', 'for', 'class')
-    codeKeywordFormat.setForeground(QColor("#569CD6")); // Blue
-    codeKeywordFormat.setFontWeight(QFont::Bold);
-    codeKeywordFormat.setFontFamily(codeCharFormat.fontFamily());
-    codeKeywordFormat.setFontFixedPitch(true);
-    codeKeywordFormat.setFontPointSize(10); // Keep consistent point size
+    localCodeKeywordFormat.setForeground(QColor("#569CD6")); // Blue
+    localCodeKeywordFormat.setFontWeight(QFont::Bold);
+    localCodeKeywordFormat.setFontFamily(localCodeCharFormat.fontFamily());
+    localCodeKeywordFormat.setFontFixedPitch(true);
+    localCodeKeywordFormat.setFontPointSize(10);
 
-    // String literal format (e.g., "hello")
-    codeStringFormat.setForeground(QColor("#D69D85")); // Orange-ish
-    codeStringFormat.setFontFamily(codeCharFormat.fontFamily());
-    codeStringFormat.setFontFixedPitch(true);
-    codeStringFormat.setFontPointSize(10);
+    localCodeStringFormat.setForeground(QColor("#D69D85")); // Orange-ish
+    localCodeStringFormat.setFontFamily(localCodeCharFormat.fontFamily());
+    localCodeStringFormat.setFontFixedPitch(true);
+    localCodeStringFormat.setFontPointSize(10);
 
-    // Comment format (e.g., // a comment)
-    codeCommentFormat.setForeground(QColor("#6A9955")); // Green
-    codeCommentFormat.setFontFamily(codeCharFormat.fontFamily());
-    codeCommentFormat.setFontFixedPitch(true);
-    codeCommentFormat.setFontPointSize(10);
-    codeVariableFormat.setForeground(QColor("#00ff7f")); // A light blue/cyan
-    codeVariableFormat.setFontFamily(codeCharFormat.fontFamily());
-    codeVariableFormat.setFontFixedPitch(true);
-    codeVariableFormat.setFontPointSize(10);
+    localCodeCommentFormat.setForeground(QColor("#6A9955")); // Green
+    localCodeCommentFormat.setFontFamily(localCodeCharFormat.fontFamily());
+    localCodeCommentFormat.setFontFixedPitch(true);
+    localCodeCommentFormat.setFontPointSize(10);
+
+    localCodeVariableFormat.setForeground(QColor("#00ff7f")); // A light blue/cyan
+    localCodeVariableFormat.setFontFamily(localCodeCharFormat.fontFamily());
+    localCodeVariableFormat.setFontFixedPitch(true);
+    localCodeVariableFormat.setFontPointSize(10);
 
 
     QTextCursor cursor = edit->textCursor();
     QTextBlock currentBlock = cursor.block();
     QTextCharFormat currentCharFormat = cursor.charFormat();
 
-    // The comparison should now use the *member* codeBlockFormat and codeCharFormat
-    bool isCodeBlock = (currentBlock.blockFormat().background() == codeBlockFormat.background() &&
-                        currentBlock.blockFormat().leftMargin() == codeBlockFormat.leftMargin() &&
-                        currentCharFormat.fontFamily() == codeCharFormat.fontFamily() &&
-                        currentCharFormat.fontFixedPitch() == codeCharFormat.fontFixedPitch());
-                        //currentCharFormat.pointSize() == codeCharFormat.pointSize()); // Added pointSize check back
+    // Store original cursor position and selection to restore it later
+    int originalPosition = cursor.position();
+    int originalAnchor = cursor.anchor();
+    bool hadSelection = cursor.hasSelection();
 
-    cursor.beginEditBlock();
+    // The comparison should use the *local* formats or *member* formats if they are defined globally
+    bool isCodeBlock = (currentBlock.blockFormat().background() == localCodeBlockFormat.background() &&
+                        qFuzzyCompare(currentBlock.blockFormat().leftMargin(), localCodeBlockFormat.leftMargin()) && // Use qFuzzyCompare for floats
+                        currentCharFormat.fontFamily() == localCodeCharFormat.fontFamily() &&
+                        currentCharFormat.fontFixedPitch() == localCodeCharFormat.fontFixedPitch() &&
+                        qFuzzyCompare(currentCharFormat.fontPointSize(), localCodeCharFormat.fontPointSize())); // Added pointSize check back
+
+
+    cursor.beginEditBlock(); // Start undo/redo block
 
     if (isCodeBlock) {
         // Revert to default formatting
         QTextBlockFormat defaultBlockFormat;
         QTextCharFormat defaultCharFormat;
 
+        // Apply default format to the entire block
+        cursor.select(QTextCursor::BlockUnderCursor);
         cursor.setBlockFormat(defaultBlockFormat);
-        cursor.mergeCharFormat(defaultCharFormat);
+        cursor.mergeCharFormat(defaultCharFormat); // This merges, usually fine for default
 
-        QTextBlockFormat newBlockFormat = cursor.blockFormat();
+        // Ensure non-breakable lines are reset if needed (for other blocks)
+        QTextBlockFormat newBlockFormat = cursor.blockFormat(); // Get the updated block format
         newBlockFormat.setNonBreakableLines(false);
-        cursor.setBlockFormat(newBlockFormat);
+        cursor.setBlockFormat(newBlockFormat); // Re-apply to ensure non-breakable is false
+
+        // Clear character formats for the text within the block
+        // Select the text content (excluding block end)
+        cursor.movePosition(QTextCursor::StartOfBlock, QTextCursor::MoveAnchor);
+        cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+        cursor.mergeCharFormat(defaultCharFormat); // Apply default char format to content
 
     } else {
         // Apply main code block formatting
-        cursor.setBlockFormat(codeBlockFormat);
-        cursor.mergeCharFormat(codeCharFormat); // Applies monospace font and default code color
+        cursor.select(QTextCursor::BlockUnderCursor); // Select the entire current block
+        cursor.setBlockFormat(localCodeBlockFormat);
+        cursor.mergeCharFormat(localCodeCharFormat); // Applies monospace font and default code color
 
-        QString selectedText = cursor.selectedText();
-        // If nothing is selected, apply to the entire current block's text
-        if (selectedText.isEmpty()) {
-            selectedText = currentBlock.text();
-            // IMPORTANT: To format the whole block correctly when nothing is selected,
-            // you need to move the cursor to the start of the block and select it.
-            cursor.movePosition(QTextCursor::StartOfBlock, QTextCursor::MoveAnchor);
-            cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
-        } else {
-            // If text is selected, store its original start position to correctly apply formatting
-            cursor.setPosition(cursor.selectionStart(), QTextCursor::MoveAnchor);
-        }
+        // After applying block-wide format, we need to apply syntax highlighting.
+        // It's safer to work on a COPY of the block's text to prevent issues if text changes.
+        // Also, define the range for highlighting clearly.
+        int blockStartPos = currentBlock.position(); // Absolute start position of the block
+        QString blockText = currentBlock.text();     // Text content of the current block
 
-        int currentBlockStartPos = cursor.position(); // Store the absolute start position of the selected/block text
+        // To apply syntax highlighting:
+        // 1. Move a temporary cursor to the start of the block
+        // 2. Format based on matches within the blockText
+        QTextCursor highlightCursor = edit->textCursor();
+        highlightCursor.setPosition(blockStartPos);
 
-        // --- Apply specific colors using the member variables ---
+        // --- Apply specific colors using the local formats ---
 
         QStringList keywords = {"void", "int", "class", "return", "if", "else", "for", "while", "array","print","string","echo","cout","cin","printf","bool"};
         for (const QString& keyword : qAsConst(keywords)) {
             int index = 0;
-            // Iterate through the selectedText (or current block text)
-            while ((index = selectedText.indexOf(keyword, index, Qt::CaseSensitive)) != -1) {
-                QTextCursor keywordCursor = edit->textCursor(); // Use editor's cursor to create a new one
-                keywordCursor.setPosition(currentBlockStartPos + index, QTextCursor::MoveAnchor);
-                keywordCursor.setPosition(currentBlockStartPos + index + keyword.length(), QTextCursor::KeepAnchor);
-                keywordCursor.mergeCharFormat(codeKeywordFormat);
+            while ((index = blockText.indexOf(keyword, index, Qt::CaseSensitive)) != -1) {
+                highlightCursor.setPosition(blockStartPos + index, QTextCursor::MoveAnchor);
+                highlightCursor.setPosition(blockStartPos + index + keyword.length(), QTextCursor::KeepAnchor);
+                highlightCursor.mergeCharFormat(localCodeKeywordFormat);
                 index += keyword.length();
             }
         }
 
         // Apply string color
         QRegularExpression stringRx("\"([^\"]*)\"");
-        QRegularExpressionMatchIterator i = stringRx.globalMatch(selectedText);
+        QRegularExpressionMatchIterator i = stringRx.globalMatch(blockText);
         while (i.hasNext()) {
             QRegularExpressionMatch match = i.next();
-            QTextCursor stringCursor = edit->textCursor(); // Use editor's cursor to create a new one
-            stringCursor.setPosition(currentBlockStartPos + match.capturedStart(), QTextCursor::MoveAnchor);
-            stringCursor.setPosition(currentBlockStartPos + match.capturedEnd(), QTextCursor::KeepAnchor);
-            stringCursor.mergeCharFormat(codeStringFormat);
+            highlightCursor.setPosition(blockStartPos + match.capturedStart(), QTextCursor::MoveAnchor);
+            highlightCursor.setPosition(blockStartPos + match.capturedEnd(), QTextCursor::KeepAnchor);
+            highlightCursor.mergeCharFormat(localCodeStringFormat);
         }
 
         // Apply comment color (basic: "//" to end of line)
-        int commentIndex = selectedText.indexOf("//");
+        int commentIndex = blockText.indexOf("//");
         if (commentIndex != -1) {
-            QTextCursor commentCursor = edit->textCursor(); // Use editor's cursor to create a new one
-            commentCursor.setPosition(currentBlockStartPos + commentIndex, QTextCursor::MoveAnchor);
-            commentCursor.setPosition(currentBlockStartPos + selectedText.length(), QTextCursor::KeepAnchor);
-            commentCursor.mergeCharFormat(codeCommentFormat);
+            highlightCursor.setPosition(blockStartPos + commentIndex, QTextCursor::MoveAnchor);
+            highlightCursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor); // Select to end of block
+            highlightCursor.mergeCharFormat(localCodeCommentFormat);
         }
+        // If you want to color variables, you'd need more sophisticated parsing here.
+        // For now, I'm omitting a general variable highlighting as it's complex.
     }
-     QString selectedText = cursor.selectedText();
-    int currentBlockStartPos;
-    QTextCursor entireBlockCursor = edit->textCursor();
 
-    entireBlockCursor.setPosition(currentBlockStartPos, QTextCursor::MoveAnchor);
-    entireBlockCursor.setPosition(currentBlockStartPos + selectedText.length(), QTextCursor::KeepAnchor);
+    cursor.endEditBlock(); // End undo/redo block
 
-    QRegularExpression wordRx("\\b[A-Za-z_][A-Za-z0-9_]*\\b"); // Matches C-style identifiers
-    QRegularExpressionMatchIterator wordIt = wordRx.globalMatch(selectedText);
-    while (wordIt.hasNext()) {
-        QRegularExpressionMatch wordMatch = wordIt.next();
-        QTextCursor wordCursor = edit->textCursor();
-        wordCursor.setPosition(currentBlockStartPos + wordMatch.capturedStart(), QTextCursor::MoveAnchor);
-        wordCursor.setPosition(currentBlockStartPos + wordMatch.capturedEnd(), QTextCursor::KeepAnchor);
-
-        // ONLY apply variable format if its current foreground color is the default code text color
-        // This prevents overwriting keywords, strings, comments that were already colored.
-        if (wordCursor.charFormat().foreground() == codeCharFormat.foreground()) {
-            wordCursor.mergeCharFormat(codeVariableFormat);
-        }
-         cursor.endEditBlock();
+    // Restore original cursor position and selection (if any)
+    if (hadSelection) {
+        cursor.setPosition(originalAnchor, QTextCursor::MoveAnchor);
+        cursor.setPosition(originalPosition, QTextCursor::KeepAnchor);
+    } else {
+        cursor.setPosition(originalPosition, QTextCursor::MoveAnchor);
     }
+    edit->setTextCursor(cursor); // Ensure the editor uses the updated cursor
 }
+
 
 void Window::handleImagePaste() {
     qDebug() << "handleImagePaste() called!";
@@ -1661,9 +1853,12 @@ void Window::saveState() {
     settings.setValue("Editor/Font", currentFont);
     settings.setValue("Editor/Size", currentSize);
     settings.setValue("Editor/Color", currentColor.name());
-    settings.setValue("Editor/FontSize", currentfontSize);
-    settings.setValue("Editor/AppColor", currentAppColor);
-    settings.setValue("Editor/NoteColor", currentNoteColor);
+    settings.setValue("AppStyle/AppFontFamily", currentFont);       // Use currentFont for app-wide font family
+    settings.setValue("AppStyle/AppFontSize", currentfontSize);     // Use currentfontSize for app-wide font size
+    settings.setValue("AppStyle/AppBgColor", currentAppColor);      // Main window background
+    settings.setValue("AppStyle/NoteTextColor", currentNoteColor);  // NoteTree text and toolbar/menu text
+    settings.setValue("AppStyle/ToolbarBgColor", currentToolbarColor);
+
 
     // Save the complete notebook structure
     saveNotebookStructure();
@@ -1688,16 +1883,23 @@ void Window::restoreState() {
     if (settings.contains("Editor/Color")) {
         setTextColor(settings.value("Editor/Color").toString());
     }
-    if (settings.contains("Editor/FontSize")) {
-        int restoredSize = settings.value("Editor/FontSize").toInt();
+    if (settings.contains("AppStyle/AppFontFamily")) { // Assuming this is where you save App Font Family
+        setAppFont(settings.value("AppStyle/AppFontFamily", "Arial").toString());
+    }
+    if (settings.contains("AppStyle/AppFontSize")) { // This refers to your 'currentfontSize'
+        int restoredSize = settings.value("AppStyle/AppFontSize", 10).toInt();
         setfontSize(restoredSize);
     }
-    if (settings.contains("Editor/AppColor")) {
-        setAppColor(settings.value("Editor/AppColor").toString());
+    if (settings.contains("AppStyle/AppBgColor")) { // This refers to your 'currentAppColor'
+        setAppColor(settings.value("AppStyle/AppBgColor", "#202020").toString());
     }
-    if (settings.contains("Editor/NoteColor")) {
-        setNoteColor(settings.value("Editor/NoteColor").toString());
+    if (settings.contains("AppStyle/NoteTextColor")) { // This refers to your 'currentNoteColor'
+        setNoteColor(settings.value("AppStyle/NoteTextColor", "#FFFFFF").toString());
     }
+    if (settings.contains("AppStyle/ToolbarBgColor")) { // This refers to your 'currentToolbarColor'
+        setToolbarColor(settings.value("AppStyle/ToolbarBgColor", "#303030").toString());
+    }
+
     // Automatically select and load the first page
     if (NoteTree->topLevelItemCount() > 1) { // Exclude "+ Add Notebook"
         QTreeWidgetItem* firstNotebook = NoteTree->topLevelItem(0);
