@@ -1,5 +1,4 @@
 Note taking app
-Not finished yet
 ![image](https://github.com/user-attachments/assets/9fc85efb-2b3e-457c-a0d9-5ff350828db8)
 
 You can customize the window
