@@ -1,7 +1,9 @@
 Note taking app
+
 ![image](https://github.com/user-attachments/assets/5f66c226-b58c-456e-8483-77ba77f6b5fe)
 
 You can customize the window
+
 ![image](https://github.com/user-attachments/assets/8f8ccf70-8e28-4c48-9cb7-ff91526b956c)
 
 
