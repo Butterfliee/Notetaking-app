@@ -1,453 +1,579 @@
 #include "window.h"
 #include <QApplication>
 #include <QTextDocument>
+#include <QGraphicsDropShadowEffect>
+#include <QStyleOption>
+#include <QPainter>
+#include <QTimer>
+#include <QToolBar>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QActionGroup>
+#include <QMenu>
 
 Window::Window(QWidget *parent):
     QWidget{parent}, currentfontSize(12), currentSize(12), currentFont("Arial"), currentColor("white")
 {
-  setWindowTitle("TripleNote");
-    this -> setWindowIcon(QIcon(":/main"));
-  //the layout of tools on very top
-  toolLayout = new QVBoxLayout();
-  //layout of the whole window
- layout = new QVBoxLayout();
-  layout -> addLayout(toolLayout);
- toolLayout -> setAlignment(Qt::AlignTop);
+    setWindowTitle("TripleNote");
+    this->setWindowIcon(QIcon(":/main"));
+    this->setAttribute(Qt::WA_StyledBackground, true);
+    this->setAutoFillBackground(true);
 
-    //the app setting and file management toolbar
-  topToolBar = new QToolBar;
-  toolLayout -> addWidget(topToolBar);
-  file = new QMenu("File");
-  file -> setStyleSheet("background-color: #202020; color:white ");
-  topToolBar->addAction(file->menuAction());
-  //actions to the file menu
-  saveFile = new QAction("Save file");
-  saveFile -> setShortcut(QKeySequence("Ctrl+S"));
-  //savingFile
-connect(saveFile, &QAction::triggered, this, &Window::savingFile);
-  insertFile = new QAction("Insert file");
-insertFile -> setShortcut(QKeySequence("Ctrl+O"));
-   connect(insertFile, &QAction::triggered, this, &Window::insertingFile);
-
-   print = new QAction("Print");
-   connect(print, &QAction::triggered, this, &Window::printing);
-   print -> setShortcut(QKeySequence("Ctrl+P"));
-  file->addAction(saveFile);
-   file->addAction(insertFile);
-   file->addAction(print);
-
-  //view menu (showing toolbars, custom etc.)
-  view = new QMenu("View");
-  view -> setStyleSheet("background-color: #202020; color:white ");
-   topToolBar->addAction(view->menuAction());
-  appCustom = new QAction("App custom");
-   appCustom -> setShortcut(QKeySequence("Shift+C"));
-   connect(appCustom, &QAction::triggered, this, &Window::appCustomTrigg);
-   view -> addAction(appCustom);
-  toggleSidebar = new QAction("Toggle bar");
-  view -> addAction(toggleSidebar);
-  toggleSidebar->setShortcut(QKeySequence("Ctrl+B"));
-  toggleSidebar -> setCheckable(true);
-  connect(toggleSidebar, &QAction::triggered, this, &Window::ToggleToolbar);
-  toggleMenuBar = new QAction("Toggle menu bar");
-  toggleMenuBar->setShortcut(QKeySequence("Ctrl+C"));
-  toggleMenuBar -> setCheckable(true);
-  view -> addAction(toggleMenuBar);
-connect(toggleMenuBar, &QAction::triggered, this, &Window::ToggleMenubar);
-
-      //the layout on the side for notebooks
-   Notebooks = new QHBoxLayout(this);
-
-//TREE OF NOTEBOOKS
-  // Create the tree widget
-  NoteTree = new QTreeWidget();
-  NoteTree->setHeaderHidden(true);
-  NoteTree->setMinimumSize(250,600);
-  NoteTree->setMaximumSize(250,1100);
-
-  // Add the tree widget to the layout
-  Notebooks->addWidget(NoteTree);
-
-  // Initialize notebook data structure
-  notebookData = QMap<QString, QMap<QString, QString>>();
-
-  // Create the "Add notebook" item
-  QTreeWidgetItem *addNotebookItem = new QTreeWidgetItem(NoteTree);
-  addNotebookItem->setText(0, "+ Add Notebook");
-  addNotebookItem->setFlags(addNotebookItem->flags() | Qt::ItemIsEnabled | Qt::ItemIsSelectable);
-
-  // Connect the item click to your addButton function
-  connect(NoteTree, &QTreeWidget::itemClicked, this, [this](QTreeWidgetItem *item) {
-      if (item->text(0) == "+ Add Notebook") {
-          addNotebook();
-      }
-  });
-
-  NoteTree->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-
-  Notebooks -> addLayout(layout);
+    // OPRAVA STYLU: Změněno z "Window" na "QWidget" pro správné vykreslení pozadí
+    this->setStyleSheet(
+        "QStackedWidget { background-color: #f0f2f5; }"
+        "QWidget#page_login, QWidget#page_register { background-color: #f0f2f5; }"
 
 
+        "QWidget#loginCard, QWidget#registerCard { "
+        "   background-color: white !important; "
+        "   border: 1px solid #dcdfe6; "
+        "   border-radius: 15px; "
+        "}"
 
-//CREATING THE TOOLBAR
-  //the toolbar that would keep the function and menus for the editor
+        "QLabel#header { "
+        "   color: #2c3e50 !important; "
+        "   background-color: transparent !important; "
+        "   font-size: 32px !important; "
+        "   font-weight: 800 !important; "
+        "   min-height: 60px; "
+        "   border: none !important; "
+        "   qproperty-alignment: 'AlignCenter'; "
+        "}"
+
+        "QLabel#subheader { "
+        "   color: #606266 !important; "
+        "   font-size: 15px !important; "
+        "   background-color: transparent !important; "
+        "   margin-bottom: 20px; "
+        "}"
+
+        "QLineEdit { "
+        "   background-color: #ffffff; "
+        "   border: 1px solid #dcdfe6; "
+        "   border-radius: 8px; "
+        "   padding: 10px 15px; "
+        "   color: #333333; "
+        "}"
+        "QPushButton#primary { "
+        "   background-color: #409eff; color: white; border-radius: 8px; "
+        "   padding: 12px; font-size: 15px; font-weight: bold; border: none;"
+        "}"
+        "QPushButton#primary:hover { background-color: #66b1ff; }"
+        "QPushButton#secondary { "
+        "   background-color: transparent; color: #909399; "
+        "   border: none; font-size: 13px; font-weight: 500; "
+        "}"
+        );
+
+    // 1. Inicializace stránek
+
+
+    loginPage = new QWidget();
+
+    loginPage->setObjectName("page_login");
+    loginPage->setStyleSheet(
+        "QWidget#page_login {"
+        "   border-image: url(/home/lilienrose/Notetaking-app-main/background.png) 0 0 0 0 stretch stretch;"
+        "}"
+        );
+    registerPage = new QWidget();
+    registerPage->setObjectName("page_register");
+    editorPage = new QWidget();
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    stackedWidget = new QStackedWidget(this);
+    mainLayout->addWidget(stackedWidget);
+
+    QVBoxLayout *loginOuterLayout = new QVBoxLayout(loginPage);
+    QFrame *loginCard = new QFrame();
+    loginCard->setObjectName("loginCard");
+    loginCard->setFixedWidth(450);
+    loginCard->setFrameShape(QFrame::StyledPanel);
+    loginCard->setAttribute(Qt::WA_StyledBackground, true);
+    loginCard->setStyleSheet(
+        "#loginCard {"
+        "  background-color: #1a1a1a;"
+        "  border: 2px solid #3b594d;"
+        "  border-radius: 10px;"
+        "}"
+        );
+
+    QVBoxLayout *lLay = new QVBoxLayout(loginCard);
+    lLay->setContentsMargins(40, 50, 40, 50);
+    lLay->setSpacing(15);
+
+    QLabel *logoLabel = new QLabel();
+    logoLabel->setPixmap(QPixmap(":/main").scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    logoLabel->setAlignment(Qt::AlignCenter);
+    logoLabel->setStyleSheet("margin-bottom: 5px; background: transparent;");
+
+    loginLabel = new QLabel("Vítejte zpět");
+    loginLabel->setObjectName("header");
+    loginLabel->setAlignment(Qt::AlignCenter);
+    loginLabel->setMinimumHeight(50);
+    loginLabel->setStyleSheet(
+        "color: #f6f8f7; "
+        "font-size: 32px; "
+        "font-weight: 800; "
+        "background: transparent;"
+        );
+    loginLabel->setVisible(true);
+    loginLabel->raise();
+
+    QLabel *subLabel = new QLabel("Přihlaste se ke svému účtu TripleNote");
+    subLabel->setObjectName("subheader");
+    subLabel->setAlignment(Qt::AlignCenter);
+    subLabel->setStyleSheet(
+        "color: #A9A9A9; "
+        "font-size: 21px; "
+        "margin-bottom: 15px; "
+        "background: transparent;"
+        );
+    editUser = new QLineEdit();
+    editUser->setPlaceholderText("Uživatelské jméno");
+    editUser -> setStyleSheet(
+        "background-color: #242424;"
+        "height: 35px;"
+        "border-radius: 5px;"
+        );
+
+    editPass = new QLineEdit();
+    editPass->setPlaceholderText("Heslo");
+    editPass->setEchoMode(QLineEdit::Password);
+    editPass -> setStyleSheet(
+        "background-color: #242424;"
+        "height: 35px;"
+        "border-radius: 5px;"
+        );
+
+    btnLogin = new QPushButton("Přihlásit se");
+    btnLogin->setObjectName("primary");
+    btnLogin->setCursor(Qt::PointingHandCursor);
+
+    btnLogin -> setStyleSheet(
+        "background-color: #3b594d;"
+        "height: 35px;"
+        "border-radius: 5px;"
+        "border: 1px solid #012400"
+        );
+
+    btnGoToRegister = new QPushButton("Ještě nemáte účet? Vytvořit");
+    btnGoToRegister->setObjectName("secondary");
+    btnGoToRegister->setCursor(Qt::PointingHandCursor);
+
+    btnGoToRegister -> setStyleSheet(
+        "background-color: #3b594d;"
+        "height: 35px;"
+        "border-radius: 5px;"
+        "border: 1px solid #012400"
+        );
+
+
+    lLay->addWidget(logoLabel);
+    lLay->addWidget(loginLabel);
+    lLay->addWidget(subLabel);
+    lLay->addWidget(editUser);
+    lLay->addWidget(editPass);
+    lLay->addSpacing(10);
+    lLay->addWidget(btnLogin);
+    lLay->addWidget(btnGoToRegister);
+
+    loginOuterLayout->addWidget(loginCard, 0, Qt::AlignCenter);
+
+
+
+    // --- DESIGN REGISTRAČNÍ STRÁNKY ---
+    QVBoxLayout *registerOuterLayout = new QVBoxLayout(registerPage);
+    QWidget *registerCard = new QWidget();
+    registerCard->setObjectName("registerCard");
+    registerCard->setFixedWidth(450);
+    registerCard->setStyleSheet(
+        "#registerCard {"
+        "  background-color: #1a1a1a;"
+        "  border: 2px solid #3b594d;"
+        "  border-radius: 10px;"
+        "}"
+        );
+
+    QVBoxLayout *rLay = new QVBoxLayout(registerCard);
+    rLay->setContentsMargins(40, 50, 40, 50);
+    rLay->setSpacing(15);
+
+    QLabel *rLab = new QLabel("Nový účet");
+    rLab->setObjectName("header");
+    rLab->setAlignment(Qt::AlignCenter);
+    rLab -> setStyleSheet(
+        "color: #A9A9A9; "
+        "font-size: 21px; "
+        "margin-bottom: 15px; "
+        "background: transparent;"
+        );
+
+    QLineEdit *rUser = new QLineEdit();
+    rUser->setPlaceholderText("Zvolte uživatelské jméno");
+    rUser-> setStyleSheet(
+        "background-color: #242424;"
+        "height: 35px;"
+        "border-radius: 5px;"
+        );
+
+    QLineEdit *rPass = new QLineEdit();
+    rPass->setPlaceholderText("Zvolte silné heslo");
+    rPass->setEchoMode(QLineEdit::Password);
+    rPass -> setStyleSheet(
+        "background-color: #242424;"
+        "height: 35px;"
+        "border-radius: 5px;"
+        );
+
+    btnRegister = new QPushButton("Zaregistrovat se");
+    btnRegister->setObjectName("primary");
+    btnRegister->setCursor(Qt::PointingHandCursor);
+    btnRegister -> setStyleSheet(
+        "background-color: #3b594d;"
+        "height: 35px;"
+        "border-radius: 5px;"
+        "border: 1px solid #012400"
+        );
+
+    QPushButton *btnBack = new QPushButton("Zpět k přihlášení");
+    btnBack->setObjectName("secondary");
+    btnBack->setCursor(Qt::PointingHandCursor);
+    btnBack-> setStyleSheet(
+        "background-color: #3b594d;"
+        "height: 35px;"
+        "border-radius: 5px;"
+        "border: 1px solid #012400"
+        );
+
+    rLay->addWidget(rLab);
+    rLay->addWidget(rUser);
+    rLay->addWidget(rPass);
+    rLay->addWidget(btnRegister);
+    rLay->addWidget(btnBack);
+    registerOuterLayout->addWidget(registerCard, 0, Qt::AlignCenter);
+
+    QGraphicsDropShadowEffect *passShadow = new QGraphicsDropShadowEffect();
+    passShadow->setBlurRadius(10);
+    passShadow->setXOffset(0);
+    passShadow->setYOffset(3);
+    passShadow->setColor(QColor(118, 132, 77));
+
+
+    QGraphicsDropShadowEffect *nameShadow = new QGraphicsDropShadowEffect();
+    nameShadow->setBlurRadius(10);
+    nameShadow->setXOffset(0);
+    nameShadow->setYOffset(3);
+    nameShadow->setColor(QColor(118, 132, 77));
+    editPass->setGraphicsEffect(passShadow);
+    editUser->setGraphicsEffect(nameShadow);
+
+
+    QGraphicsDropShadowEffect *registerShadow = new QGraphicsDropShadowEffect();
+    registerShadow->setBlurRadius(10);
+    registerShadow->setXOffset(0);
+    registerShadow->setYOffset(3);
+    registerShadow->setColor(QColor(118, 132, 77));
+    rUser->setGraphicsEffect(registerShadow);
+
+    QGraphicsDropShadowEffect *registerPassShadow = new QGraphicsDropShadowEffect();
+    registerPassShadow->setBlurRadius(10);
+    registerPassShadow->setXOffset(0);
+    registerPassShadow->setYOffset(3);
+    registerPassShadow->setColor(QColor(118, 132, 77));
+    rPass->setGraphicsEffect(registerPassShadow);
+
+    QHBoxLayout *editorMainLayout = new QHBoxLayout(editorPage);
+    editorMainLayout->setContentsMargins(0, 0, 0, 0);
+    editorMainLayout->setSpacing(0);
+
+    NoteTree = new QTreeWidget();
+    NoteTree->setHeaderHidden(true);
+    NoteTree->setMinimumSize(250, 600);
+    NoteTree->setMaximumSize(250, 1100);
+    NoteTree->setStyleSheet("background-color: #202020; color: white;");
+    NoteTree->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    NoteTree->setContextMenuPolicy(Qt::CustomContextMenu);
+    editorMainLayout->addWidget(NoteTree);
+
+    QVBoxLayout *rightLayout = new QVBoxLayout();
+    editorMainLayout->addLayout(rightLayout);
+
+    toolLayout = new QVBoxLayout();
+    toolLayout->setAlignment(Qt::AlignTop);
+    rightLayout->addLayout(toolLayout);
+
+    topToolBar = new QToolBar();
+    toolLayout->addWidget(topToolBar);
+
+    file = new QMenu("File");
+    file->setStyleSheet("background-color: #202020; color: white;");
+    topToolBar->addAction(file->menuAction());
+
+    saveFile = new QAction("Save file");
+    saveFile->setShortcut(QKeySequence("Ctrl+S"));
+    connect(saveFile, &QAction::triggered, this, &Window::savingFile);
+
+    insertFile = new QAction("Insert file");
+    insertFile->setShortcut(QKeySequence("Ctrl+O"));
+    connect(insertFile, &QAction::triggered, this, &Window::insertingFile);
+
+    print = new QAction("Print");
+    print->setShortcut(QKeySequence("Ctrl+P"));
+    connect(print, &QAction::triggered, this, &Window::printing);
+
+    file->addAction(saveFile);
+    file->addAction(insertFile);
+    file->addAction(print);
+
+    view = new QMenu("View");
+    view->setStyleSheet("background-color: #202020; color: white;");
+    topToolBar->addAction(view->menuAction());
+
+    appCustom = new QAction("App custom");
+    appCustom->setShortcut(QKeySequence("Shift+C"));
+    connect(appCustom, &QAction::triggered, this, &Window::appCustomTrigg);
+    view->addAction(appCustom);
+
+    toggleSidebar = new QAction("Toggle bar");
+    toggleSidebar->setShortcut(QKeySequence("Ctrl+B"));
+    toggleSidebar->setCheckable(true);
+    connect(toggleSidebar, &QAction::triggered, this, &Window::ToggleToolbar);
+    view->addAction(toggleSidebar);
+
+    toggleMenuBar = new QAction("Toggle menu bar");
+    toggleMenuBar->setShortcut(QKeySequence("Ctrl+C"));
+    toggleMenuBar->setCheckable(true);
+    connect(toggleMenuBar, &QAction::triggered, this, &Window::ToggleMenubar);
+    view->addAction(toggleMenuBar);
+
     toolbar = new QToolBar("Main Toolbar", this);
-    //layout -> addWidget(toolbar);
-    toolbar -> setStyleSheet("background-color: #202020");
-    this -> setStyleSheet("background-color: #404040; color:white;");
-    toolbar -> setStyleSheet("color: white");
-     layout->addWidget(toolbar);
-    //INSERT SOMETHING INTO THE TEXT EDIT
+    toolbar->setStyleSheet("background-color: #202020; color: white;");
+    rightLayout->addWidget(toolbar);
 
-    // Adding insert menu to the toolbar
     insert = new QMenu("Insert", this);
+    insert->setIcon(QIcon(":/insert"));
     toolbar->addAction(insert->menuAction());
-    insert -> setIcon(QIcon(":/insert"));
 
-    //an action to insert a line
     line = new QAction("Line", this);
-    insert -> addAction(line);
+    insert->addAction(line);
     connect(line, &QAction::triggered, this, &Window::doLine);
 
-
-    //HERE I WOULD ADD ACTIONS OF THE INSERT MENU
     table = new QAction("Table", this);
-    insert -> addAction(table);
+    insert->addAction(table);
     connect(table, &QAction::triggered, this, &Window::createTable);
 
     date = new QAction("Date", this);
-    insert -> addAction(date);
+    insert->addAction(date);
     connect(date, &QAction::triggered, this, &Window::insertDate);
 
     time = new QAction("Time", this);
-    insert -> addAction(time);
+    insert->addAction(time);
     connect(time, &QAction::triggered, this, &Window::insertTime);
 
     quote = new QAction("Quote", this);
-    insert -> addAction(quote);
-   connect(quote, &QAction::triggered, this, &Window::insertQuote);
+    insert->addAction(quote);
+    connect(quote, &QAction::triggered, this, &Window::insertQuote);
 
-    codeBlock = new QAction("Code Block",this);
-   insert -> addAction(codeBlock);
+    codeBlock = new QAction("Code Block", this);
+    insert->addAction(codeBlock);
     connect(codeBlock, &QAction::triggered, this, &Window::CodeBlock);
 
-    //ACTIONS OF UNDO AND REDO
-    //adding the back action
     back = new QAction(QIcon(":/back"), "", this);
     toolbar->addAction(back);
     connect(back, &QAction::triggered, this, &Window::undo);
 
-    // Create redo action (next)
     next = new QAction(QIcon(":/next"), "", this);
     toolbar->addAction(next);
-   connect(next, &QAction::triggered, this, &Window::redo);
+    connect(next, &QAction::triggered, this, &Window::redo);
 
-
-
-    //SETTING FONTS
-    //adding the menu for changing font
-    font= new QMenu(tr("Fonts"), this);
-
+    font = new QMenu(tr("Fonts"), this);
     fontGroup = new QActionGroup(this);
-    QStringList fontTexts = {        "Arial",
-                             "Courier New",
-                             "Consolas",
-                             "Comic Sans MS",
-                             "Roboto Mono",
-                             "Helvetica",
-                             "Times New Roman",
-                             "Georgia",
-                             "Sans Serif",
-                             "Calibri",
-                             "Noto Serif",
-                             "Lato"
-
-                             };
+    QStringList fontTexts = {"Arial", "Courier New", "Consolas", "Comic Sans MS", "Roboto Mono", "Helvetica", "Times New Roman", "Georgia", "Sans Serif", "Calibri", "Noto Serif", "Lato"};
     createActions(font, fontGroup, fontTexts, [this](const QString &text) { setFont(text); });
-
-
-    // Add font menu to toolbar
     toolbar->addAction(font->menuAction());
 
-    // Set font menu tooltip
-    font->menuAction()->setToolTip(tr("Change text font family"));
-
-    //adding the menu for changing size of the text
     sizeMenu = new QMenu(tr("Size"), this);
+    sizesAction = new QActionGroup(this);
+    QStringList sizeTexts = {"8", "9", "10", "12", "14", "16", "18", "20", "22", "24", "26", "28", "35", "45", "55", "65", "75"};
+    createActions(sizeMenu, sizesAction, sizeTexts, [this](const QString &text) { setSize(text.toInt()); });
     toolbar->addAction(sizeMenu->menuAction());
 
-
-    //group of actions for sizes of text
-    sizesAction = new QActionGroup(this);
-    QStringList sizeTexts = {"8",
-                             "9",
-                             "10",
-                             "12",
-                             "14",
-                             "16",
-                             "18",
-                             "20",
-                             "22",
-                             "24",
-                             "26",
-                             "28",
-                             "35",
-                             "45",
-                             "55",
-                             "65",
-                             "75"};
-    createActions(sizeMenu, sizesAction, sizeTexts, [this](const QString &text) { setSize(text.toInt()); });
-
-
-    //adding action for making the text bold
     specialText = new QMenu("", this);
-    specialText -> setIcon(QIcon(":/special"));
+    specialText->setIcon(QIcon(":/special"));
     bold = new QAction(QIcon(":/bold"), "", this);
-    specialText -> addAction(bold);
+    specialText->addAction(bold);
     connect(bold, &QAction::triggered, this, &Window::setBold);
-    //adding action for making cursive
     cursive = new QAction(QIcon(":/Cursive"), "", this);
-    specialText -> addAction(cursive);
- connect(cursive, &QAction::triggered, this, &Window::setCursive);
-   //adding menu for underline
+    specialText->addAction(cursive);
+    connect(cursive, &QAction::triggered, this, &Window::setCursive);
+
     underline = new QMenu("", this);
-    underline -> setIcon(QIcon(":/underline"));
-    toolbar ->addAction(underline->menuAction());
-    toolbar -> addAction(specialText->menuAction());
+    underline->setIcon(QIcon(":/underline"));
+    toolbar->addAction(underline->menuAction());
+    toolbar->addAction(specialText->menuAction());
 
-    //underline styles. actiongroup
     QActionGroup* underlineGroup = new QActionGroup(this);
-    QStringList underlineTexts = {
-        "None",
-        "Single",
-        "Dash Dotted",
-        "Dotted",
-        "Wavy",
-        "Dashed",
-    };
-    createActions(underline, underlineGroup, underlineTexts, [this](const QString &text) {
-        setUnderlineStyle(text);
-    });
+    QStringList underlineTexts = {"None", "Single", "Dash Dotted", "Dotted", "Wavy", "Dashed"};
+    createActions(underline, underlineGroup, underlineTexts, [this](const QString &text) { setUnderlineStyle(text); });
 
-    //styles of a whole border
     borderline = new QMenu("", this);
-    borderline -> setIcon(QIcon(":/border"));
+    borderline->setIcon(QIcon(":/border"));
     toolbar->addAction(borderline->menuAction());
     QActionGroup* BorderType = new QActionGroup(this);
-    QStringList  borderTexts = {
-       "None",
-        "Solid",
-        "Dotted",
-        "Dashed",
-        "Double",
-        "DotDash",
-        "DotDotDash",
-        "Groove",
-        "Ridge",
-        "Inset",
-        "Outset"
-    };
-    createActions(borderline, BorderType,  borderTexts, [this](const QString &text) {
-        setBorderlineStyle(text);
+    QStringList borderTexts = {"None", "Solid", "Dotted", "Dashed", "Double", "DotDash", "DotDotDash", "Groove", "Ridge", "Inset", "Outset"};
+    createActions(borderline, BorderType, borderTexts, [this](const QString &text) { setBorderlineStyle(text); });
 
-    });
-
-    //adding menu for selecting the type of lists
     lists = new QMenu("", this);
-    lists -> setIcon(QIcon(":/list"));
-    toolbar -> addAction(lists->menuAction());
-
-
+    lists->setIcon(QIcon(":/list"));
+    toolbar->addAction(lists->menuAction());
     listGroup = new QActionGroup(this);
-    QStringList listTexts = {
-                 "Decimal",
-                 "Empty circle",
-                 "Filled circle",
-                 "Lower Alpha",
-                 "Upper Alpha",
-                 "Lower Roman",
-                 "Upper Roman",
-                "Filled square"
-
-
-                             };
+    QStringList listTexts = {"Decimal", "Empty circle", "Filled circle", "Lower Alpha", "Upper Alpha", "Lower Roman", "Upper Roman", "Filled square"};
     createActions(lists, listGroup, listTexts, [this](const QString &text) { setList(text); });
 
-    //adding menu for selecting color of the text
     colors = new QMenu("", this);
-    colors -> setIcon(QIcon(":/color"));
-    toolbar -> addAction(colors->menuAction());
-
+    colors->setIcon(QIcon(":/color"));
+    toolbar->addAction(colors->menuAction());
     colorGroup = new QActionGroup(this);
-    QStringList colorTexts = {
-        "Black",
-        "Red",
-        "Green",
-        "Blue",
-        "Yellow",
-        "Purple",
-        "Orange",
-        "Gray",
-        "White",
-        "Cyan",
-        "Pink",
-        "Custom..."
-    };
+    QStringList colorTexts = {"Black", "Red", "Green", "Blue", "Yellow", "Purple", "Orange", "Gray", "White", "Cyan", "Pink", "Custom..."};
     createActions(colors, colorGroup, colorTexts, [this](const QString &text) { setTextColor(text); });
 
-
-    //adding underline option
     UnderlineColors = new QMenu("Underline Color", this);
     UnderlineColors->setIcon(QIcon(":/pen"));
     toolbar->addAction(UnderlineColors->menuAction());
-
     QActionGroup* underlineColorGroup = new QActionGroup(this);
-    QStringList colorUnderline = {
-        "Black",
-        "White",
-        "Red",
-        "Green",
-        "Blue",
-        "Purple",
-        "Pink",
-        "Light Blue",
-        "Light Green",
-        "Gray",
-        "Orange",
-        "Custom..."
-    };
-    createActions(UnderlineColors, underlineColorGroup, colorUnderline, [this](const QString &text) {
-        setUnderlineColor(text);
-    });
+    QStringList colorUnderline = {"Black", "White", "Red", "Green", "Blue", "Purple", "Pink", "Light Blue", "Light Green", "Gray", "Orange", "Custom..."};
+    createActions(UnderlineColors, underlineColorGroup, colorUnderline, [this](const QString &text) { setUnderlineColor(text); });
 
-
-
-    //adding action for the AlignLeft
     AlignLeft = new QAction(QIcon(":/AlignLeft"), "", this);
-    toolbar -> addAction(AlignLeft);
-     connect(AlignLeft, &QAction::triggered, this, &Window::setLeft);
+    toolbar->addAction(AlignLeft);
+    connect(AlignLeft, &QAction::triggered, this, &Window::setLeft);
 
-    //adding action for the AlignRight
     AlignCenter = new QAction(QIcon(":/AlignCenter"), "", this);
-    toolbar -> addAction(AlignCenter);
+    toolbar->addAction(AlignCenter);
     connect(AlignCenter, &QAction::triggered, this, &Window::setCenter);
 
-    //adding action for AlignCenter
     AlignRight = new QAction(QIcon(":/AlignRight"), "", this);
-    toolbar -> addAction(AlignRight);
+    toolbar->addAction(AlignRight);
     connect(AlignRight, &QAction::triggered, this, &Window::setRight);
 
-    //adding action for AlignRight
     indentie = new QAction(QIcon(":/AlignBlock"), "", this);
-    toolbar -> addAction(indentie);
-     connect(indentie, &QAction::triggered, this, &Window::setIndent);
+    toolbar->addAction(indentie);
+    connect(indentie, &QAction::triggered, this, &Window::setIndent);
 
-    // In your Window constructor or setup function:
-    QAction *UnindentAction = new QAction(QIcon(":/unindent"),"", this);
-     toolbar -> addAction(UnindentAction);
-    // TOTO POZDEJI DODELAT UnindentAction->setShortcut(QKeySequence("Tab"));
+    QAction *UnindentAction = new QAction(QIcon(":/unindent"), "", this);
+    toolbar->addAction(UnindentAction);
     connect(UnindentAction, &QAction::triggered, this, &Window::unindentText);
 
-
-
-    //THERE WOULD BE COLORINg OF A WHOLE ROW
     bucket = new QMenu("", this);
-    bucket -> setIcon(QIcon(":/bucket"));
-    toolbar -> addAction(bucket->menuAction());
-
+    bucket->setIcon(QIcon(":/bucket"));
+    toolbar->addAction(bucket->menuAction());
     bucketGroup = new QActionGroup(this);
-    colorGroup = new QActionGroup(this);
-    QStringList bucketColors = {
-        "Black",
-        "Red",
-        "Green",
-        "Blue",
-        "Yellow",
-        "Purple",
-        "Orange",
-        "Gray",
-        "White",
-        "Cyan",
-        "Pink",
-        "Default",
-        "Custom..."
-    };
- createActions(bucket, bucketGroup, bucketColors, [this](const QString &text) { setBucketColor(text); });
-    //textEdit for the user input
- tableMenu = new QMenu();
- tableMenu -> setToolTip("Table edit");
- tableMenu -> setIcon(QIcon(":/table"));
- tableMenu-> setStyleSheet("background-color: #202020; color:white ");
- toolbar -> addAction(tableMenu->menuAction());
- tableAct = new QAction("add row");
- tableMenu -> addAction(tableAct);
- connect(tableAct, &QAction::triggered, this, &Window::addTableRow);
- tableAct2 = new QAction("Add column");
- tableMenu -> addAction(tableAct2);
- connect(tableAct2, &QAction::triggered, this, &Window::addTableColumn);
- QAction* deleteRowAct = new QAction("Delete row");
- tableMenu->addAction(deleteRowAct);
- connect(deleteRowAct, &QAction::triggered, this, &Window::deleteTableRow);
+    QStringList bucketColors = {"Black", "Red", "Green", "Blue", "Yellow", "Purple", "Orange", "Gray", "White", "Cyan", "Pink", "Default", "Custom..."};
+    createActions(bucket, bucketGroup, bucketColors, [this](const QString &text) { setBucketColor(text); });
 
- QAction* deleteColAct = new QAction("Delete column");
- tableMenu->addAction(deleteColAct);
- connect(deleteColAct, &QAction::triggered, this, &Window::deleteTableColumn);
- //HERE
+    tableMenu = new QMenu();
+    tableMenu->setIcon(QIcon(":/table"));
+    tableMenu->setStyleSheet("background-color: #202020; color: white;");
+    toolbar->addAction(tableMenu->menuAction());
+    tableAct = new QAction("add row");
+    tableMenu->addAction(tableAct);
+    connect(tableAct, &QAction::triggered, this, &Window::addTableRow);
+    tableAct2 = new QAction("Add column");
+    tableMenu->addAction(tableAct2);
+    connect(tableAct2, &QAction::triggered, this, &Window::addTableColumn);
+    QAction* deleteRowAct = new QAction("Delete row");
+    tableMenu->addAction(deleteRowAct);
+    connect(deleteRowAct, &QAction::triggered, this, &Window::deleteTableRow);
+    QAction* deleteColAct = new QAction("Delete column");
+    tableMenu->addAction(deleteColAct);
+    connect(deleteColAct, &QAction::triggered, this, &Window::deleteTableColumn);
+
     edit = new QTextEdit(this);
-    layout->addWidget(edit);
-      edit -> setMinimumWidth(500);
+    edit->setMinimumWidth(500);
+    edit->setStyleSheet("background-color: #202020; color: white;");
+    edit->installEventFilter(this);
+    rightLayout->addWidget(edit);
 
-//ADD TO MENU
-    // In your Window constructor or where you set up actions:
-      QAction *pasteAction = new QAction(tr("Paste"), this);
-      pasteAction->setShortcut(QKeySequence::Paste);
-      connect(pasteAction, &QAction::triggered, this, &Window::handleImagePaste);
+    QAction *pasteAction = new QAction(tr("Paste"), this);
+    pasteAction->setShortcut(QKeySequence::Paste);
+    connect(pasteAction, &QAction::triggered, this, &Window::handleImagePaste);
+    edit->addAction(pasteAction);
 
-      edit->addAction(pasteAction);
-      edit->installEventFilter(this);
-      edit -> setStyleSheet("background-color: #202020");
+
+    stackedWidget->addWidget(loginPage);
+    stackedWidget->addWidget(registerPage);
+    stackedWidget->addWidget(editorPage);
+    stackedWidget->setCurrentIndex(0);
+
+    auth = new AuthManager(this);
+    connect(btnGoToRegister, &QPushButton::clicked, this, &Window::onGoToRegister);
+    connect(btnBack, &QPushButton::clicked, this, &Window::onGoToLogin);
+
+    connect(btnLogin, &QPushButton::clicked, this, [=](){
+        if(editUser->text().isEmpty() || editPass->text().isEmpty()) return;
+        auth->login(editUser->text(), editPass->text());
+    });
+
+    connect(btnRegister, &QPushButton::clicked, this, [=](){
+        if(rUser->text().isEmpty() || rPass->text().isEmpty()) return;
+        auth->registerUser(rUser->text(), rPass->text());
+    });
+
+    connect(auth, &AuthManager::loginSuccess, this, [=](QString token, int userId){
+        this->myToken = token;
+        this->myUserId = userId;
+        stackedWidget->setCurrentIndex(2); // Přepnout na editor
+    });
+
+    connect(auth, &AuthManager::registerSuccess, this, [=](){
+        stackedWidget->setCurrentIndex(0); // Zpět na login po úspěšné registraci
+        editPass->clear();
+    });
+
+    notebookData = QMap<QString, QMap<QString, QString>>();
+    QTreeWidgetItem *addNotebookItem = new QTreeWidgetItem(NoteTree);
+    addNotebookItem->setText(0, "+ Add Notebook");
+
+    connect(NoteTree, &QTreeWidget::itemClicked, this, [this](QTreeWidgetItem *item) {
+        if (item->text(0) == "+ Add Notebook") {
+            addNotebook();
+        }
+    });
 
     QTimer* autoSaveTimer = new QTimer(this);
     connect(autoSaveTimer, &QTimer::timeout, this, [this]() {
         if (contentModified) {
-           savePageContent();
+            savePageContent();
             contentModified = false;
         }
     });
     autoSaveTimer->start(30000);
-    if (NoteTree->topLevelItemCount() == 1) { // Only "+ Add Notebook" exists
-        addNotebook();
-        QTreeWidgetItem* firstNotebook = NoteTree->topLevelItem(0);
-        if (firstNotebook && firstNotebook->childCount() > 0) {
-            QTreeWidgetItem* firstPage = firstNotebook->child(0);
-            NoteTree->setCurrentItem(firstPage);
-            currentPage = firstPage;
-            edit->clear();
-        }
-    }
-    NoteTree -> setStyleSheet("background-color: #202020");
-    //HERE WOULD BE KEY ACTION TO DELETE NOTEBOOKS AND NOTES
-    NoteTree -> setContextMenuPolicy(Qt::CustomContextMenu);
-connect(NoteTree, &QTreeView::customContextMenuRequested, this, &Window::showCustomMenu);
-//connect(this, &Window::rightClicked, this, &Window::slotCustomMenuRequested);
-qDebug() << "Signal-slot connection established.";
 
-setupNotebookConnections();
+    connect(NoteTree, &QTreeWidget::customContextMenuRequested, this, &Window::showCustomMenu);
+    setupNotebookConnections();
     restoreState();
-   setMouseTracking(true);
+    setMouseTracking(true);
 }
 
-//CUSTOM MENU for NoteTree delete action for deleting tree items
+void Window::paintEvent(QPaintEvent *event)
+{
+    QStyleOption opt;
+    opt.initFrom(this);
+    QPainter p(this);
+    style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
+
+    QWidget::paintEvent(event);
+}
+
 void Window::showCustomMenu(const QPoint &pos) {
-    //menu that would pop up when NoteTree is pressed
     QMenu *menu = new QMenu(this);
-    //action that should delete a note that is clicked on by mouse right bttn
     deleteNote = new QAction("Delete Note");
     connect(deleteNote, &QAction::triggered, this, &Window::deleteNoteAction);
     menu -> addAction(deleteNote);
-    //positioning that will find we are clicking on NoteTree
     QPoint globalPos = NoteTree->mapToGlobal(pos);
-    //menu will pop up at certain postition
     menu->popup(globalPos);
 }
 
@@ -921,7 +1047,13 @@ void Window::setAppFont(const QString &fontName){
     }
 
 
+    void Window::onGoToRegister() {
+        stackedWidget->setCurrentIndex(1);
+    }
 
+    void Window::onGoToLogin() {
+        stackedWidget->setCurrentIndex(0);
+    }
 void Window::setAppColor(const QString &colorName) {
     QColor color;
      currentAppColor = color;
@@ -1917,61 +2049,49 @@ QString Window::getConfigPath() {
 
 //HERE
 void Window::addNotebook() {
-    QTreeWidgetItem* notebookItem = new QTreeWidgetItem(NoteTree);
-    notebookItem->setIcon(0, QIcon(":/notebook"));
-    notebookItem->setFlags(notebookItem->flags() | Qt::ItemIsEditable | Qt::ItemIsSelectable);
+    bool ok;
+    QString name = QInputDialog::getText(this, "New Notebook", "Notebook Name:", QLineEdit::Normal, "notebook1", &ok);
 
-    // Add "+ Add Page" item
-    QTreeWidgetItem* addPageItem = new QTreeWidgetItem(notebookItem);
-    addPageItem->setText(0, "+ Add Page");
-    addPageItem->setFlags(addPageItem->flags() | Qt::ItemIsSelectable);
+    if (ok && !name.isEmpty()) {
+        QTreeWidgetItem* notebookItem = new QTreeWidgetItem(NoteTree);
+        notebookItem->setText(0, name);
+        notebookItem->setFlags(notebookItem->flags() | Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
 
-    // Initialize notebook data
-    QString notebookName = notebookItem->text(0);
-    notebookData[notebookName] = QMap<QString, QString>();
+        QTreeWidgetItem* addPageItem = new QTreeWidgetItem(notebookItem);
+        addPageItem->setText(0, "+ Add Page");
 
-    // Add the first page automatically
-    addPage(notebookItem);
+        notebookData[name] = QMap<QString, QString>();
 
-    notebookItem->setExpanded(true);
-
+        addPage(notebookItem);
+        notebookItem->setExpanded(true);
+    }
 }
 
 void Window::addPage(QTreeWidgetItem* notebookItem) {
-    if (!notebookItem) return;
+    if (!notebookItem || notebookItem->text(0) == "+ Add Notebook") return;
 
-    // Save current content before adding new page
-    if (currentPage && currentPage->parent()) {
-        savePageContent();
-    }
+    QString notebookName = notebookItem->text(0);
 
-    // Create new page item
     QTreeWidgetItem* pageItem = new QTreeWidgetItem();
-    pageItem->setText(0, QString("New Page %1").arg(notebookItem->childCount())); // Add unique number to page name
-    pageItem->setFlags(pageItem->flags() | Qt::ItemIsEditable | Qt::ItemIsSelectable);
+    int pageNum = notebookItem->childCount();
+    pageItem->setText(0, QString("New Page %1").arg(pageNum));
+    pageItem->setFlags(pageItem->flags() | Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
 
-    // Insert before "+ Add Page" item
-    int insertPos = notebookItem->childCount() - 1;
+    int insertPos = qMax(0, notebookItem->childCount() - 1);
     notebookItem->insertChild(insertPos, pageItem);
 
-    // Initialize notebook data if needed
-    QString notebookName = notebookItem->text(0);
     if (!notebookData.contains(notebookName)) {
         notebookData[notebookName] = QMap<QString, QString>();
     }
-
-    // Initialize with empty content in memory
     notebookData[notebookName][pageItem->text(0)] = "";
 
-    // Clear the text edit to show an empty page
-    edit->clear();
-
-    // Focus the new page
     NoteTree->setCurrentItem(pageItem);
-    loadPageContent(pageItem); // Load the (empty) content for the new page
-    NoteTree->editItem(pageItem, 0);
-}
+    currentPage = pageItem;
 
+    if (edit) {
+        edit->clear();
+    }
+}
 //function that provides printing dialog
 void Window::printing() {
     QPrinter printer;
