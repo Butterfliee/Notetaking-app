@@ -1,0 +1,23 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="back">back.png</file>
+        <file alias="next">next.png</file>
+        <file alias="bold">icons8-bold-30.png</file>
+        <file alias="Cursive">icons8-italics-text-style-funtion-button-for-document-application-24.png</file>
+        <file alias="underline">underline.png</file>
+        <file alias="list">list.png</file>
+        <file alias="pen">pen.png</file>
+        <file alias="color">color-wheel.png</file>
+        <file alias="AlignLeft">align-left.png</file>
+        <file alias="AlignCenter">format.png</file>
+        <file alias="AlignRight">align-right.png</file>
+        <file alias="AlignBlock">icons8-align-justify-50.png</file>
+        <file alias="bucket">icons8-bucket-64.png</file>
+        <file alias="notebook">notebook.png</file>
+        <file alias="main">main.png</file>
+        <file alias="unindent">unindent.png</file>
+        <file alias="special">specialText.png</file>
+        <file alias="border">border.png</file>
+        <file alias="table">table.png</file>
+    </qresource>
+</RCC>
