@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="insert">import.png</file>
+    </qresource>
+</RCC>

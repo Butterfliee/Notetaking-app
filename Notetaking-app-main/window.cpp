@@ -1,0 +1,2441 @@
+#include "window.h"
+#include <QApplication>
+#include <QTextDocument>
+#include <QGraphicsDropShadowEffect>
+#include <QStyleOption>
+#include <QPainter>
+#include <QTimer>
+#include <QToolBar>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QActionGroup>
+#include <QMenu>
+
+Window::Window(QWidget *parent):
+    QWidget{parent}, currentfontSize(12), currentSize(12), currentFont("Arial"), currentColor("white")
+{
+    setWindowTitle("TripleNote");
+    this->setWindowIcon(QIcon(":/main"));
+    this->setAttribute(Qt::WA_StyledBackground, true);
+    this->setAutoFillBackground(true);
+    this->setStyleSheet(
+        "QStackedWidget { background-color: #f0f2f5; }"
+        "QWidget#page_login, QWidget#page_register { background-color: #f0f2f5; }"
+
+
+        "QWidget#loginCard, QWidget#registerCard { "
+        "   background-color: white !important; "
+        "   border: 1px solid #dcdfe6; "
+        "   border-radius: 15px; "
+        "}"
+
+        "QLabel#header { "
+        "   color: #2c3e50 !important; "
+        "   background-color: transparent !important; "
+        "   font-size: 32px !important; "
+        "   font-weight: 800 !important; "
+        "   min-height: 60px; "
+        "   border: none !important; "
+        "   qproperty-alignment: 'AlignCenter'; "
+        "}"
+
+        "QLabel#subheader { "
+        "   color: #606266 !important; "
+        "   font-size: 15px !important; "
+        "   background-color: transparent !important; "
+        "   margin-bottom: 20px; "
+        "}"
+
+        "QLineEdit { "
+        "   background-color: #ffffff; "
+        "   border: 1px solid #dcdfe6; "
+        "   border-radius: 8px; "
+        "   padding: 10px 15px; "
+        "   color: #333333; "
+        "}"
+        "QPushButton#primary { "
+        "   background-color: #409eff; color: white; border-radius: 8px; "
+        "   padding: 12px; font-size: 15px; font-weight: bold; border: none;"
+        "}"
+        "QPushButton#primary:hover { background-color: #66b1ff; }"
+        "QPushButton#secondary { "
+        "   background-color: transparent; color: #909399; "
+        "   border: none; font-size: 13px; font-weight: 500; "
+        "}"
+        );
+
+
+
+    loginPage = new QWidget();
+
+    loginPage->setObjectName("page_login");
+    loginPage->setStyleSheet(
+        "QWidget#page_login {"
+        "   border-image: url(/home/lilienrose/Notetaking-app-main/background.png) 0 0 0 0 stretch stretch;"
+        "}"
+        );
+    registerPage = new QWidget();
+    registerPage->setObjectName("page_register");
+    registerPage -> setStyleSheet(
+        "QWidget#page_register {"
+        "   border-image: url(/home/lilienrose/Notetaking-app-main/background.png) 0 0 0 0 stretch stretch;"
+        "}"
+        );
+    editorPage = new QWidget();
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    stackedWidget = new QStackedWidget(this);
+    mainLayout->addWidget(stackedWidget);
+
+    QVBoxLayout *loginOuterLayout = new QVBoxLayout(loginPage);
+    QFrame *loginCard = new QFrame();
+    loginCard->setObjectName("loginCard");
+    loginCard->setFixedWidth(450);
+    loginCard->setFrameShape(QFrame::StyledPanel);
+    loginCard->setAttribute(Qt::WA_StyledBackground, true);
+    loginCard->setStyleSheet(
+        "#loginCard {"
+        "  background-color: #1a1a1a;"
+        "  border: 2px solid #3b594d;"
+        "  border-radius: 10px;"
+        "}"
+        );
+
+    QVBoxLayout *lLay = new QVBoxLayout(loginCard);
+    lLay->setContentsMargins(40, 50, 40, 50);
+    lLay->setSpacing(15);
+
+    QLabel *logoLabel = new QLabel();
+    logoLabel->setPixmap(QPixmap(":/main").scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    logoLabel->setAlignment(Qt::AlignCenter);
+    logoLabel->setStyleSheet("margin-bottom: 5px; background: transparent;");
+
+    loginLabel = new QLabel("Vítejte zpět");
+    loginLabel->setObjectName("header");
+    loginLabel->setAlignment(Qt::AlignCenter);
+    loginLabel->setMinimumHeight(50);
+    loginLabel->setStyleSheet(
+        "color: #f6f8f7; "
+        "font-size: 32px; "
+        "font-weight: 800; "
+        "background: transparent;"
+        );
+    loginLabel->setVisible(true);
+    loginLabel->raise();
+
+    QLabel *subLabel = new QLabel("Přihlaste se ke svému účtu TripleNote");
+    subLabel->setObjectName("subheader");
+    subLabel->setAlignment(Qt::AlignCenter);
+    subLabel->setStyleSheet(
+        "color: #A9A9A9; "
+        "font-size: 21px; "
+        "margin-bottom: 15px; "
+        "background: transparent;"
+        );
+    editUser = new QLineEdit();
+    editUser->setPlaceholderText("Uživatelské jméno");
+    editUser -> setStyleSheet(
+        "background-color: #242424;"
+        "height: 35px;"
+        "border-radius: 5px;"
+        "color:white;"
+        );
+
+    editPass = new QLineEdit();
+    editPass->setPlaceholderText("Heslo");
+    editPass->setEchoMode(QLineEdit::Password);
+    editPass -> setStyleSheet(
+        "background-color: #242424;"
+        "height: 35px;"
+        "border-radius: 5px;"
+        "color:white"
+        );
+
+    btnLogin = new QPushButton("Přihlásit se");
+    btnLogin->setObjectName("primary");
+    btnLogin->setCursor(Qt::PointingHandCursor);
+
+    btnLogin -> setStyleSheet(
+        "background-color: #3b594d;"
+        "height: 35px;"
+        "border-radius: 5px;"
+        "border: 1px solid #012400"
+        );
+
+    btnGoToRegister = new QPushButton("Ještě nemáte účet? Vytvořit");
+    btnGoToRegister->setObjectName("secondary");
+    btnGoToRegister->setCursor(Qt::PointingHandCursor);
+
+    btnGoToRegister -> setStyleSheet(
+        "background-color: #3b594d;"
+        "height: 35px;"
+        "border-radius: 5px;"
+        "border: 1px solid #012400"
+        );
+
+
+    lLay->addWidget(logoLabel);
+    lLay->addWidget(loginLabel);
+    lLay->addWidget(subLabel);
+    lLay->addWidget(editUser);
+    lLay->addWidget(editPass);
+    lLay->addSpacing(10);
+    lLay->addWidget(btnLogin);
+    lLay->addWidget(btnGoToRegister);
+
+    loginOuterLayout->addWidget(loginCard, 0, Qt::AlignCenter);
+
+
+
+
+    QVBoxLayout *registerOuterLayout = new QVBoxLayout(registerPage);
+    QFrame *registerCard = new QFrame();
+    registerCard->setObjectName("registerCard");
+    registerCard->setFixedWidth(450);
+    registerCard->setFrameShape(QFrame::StyledPanel);
+    registerCard ->setAttribute(Qt::WA_StyledBackground, true);
+    registerCard->setStyleSheet(
+        "#registerCard {"
+        "  background-color: #1a1a1a;"
+        "  border: 2px solid #3b594d;"
+        "  border-radius: 10px;"
+        "}"
+        );
+
+    QVBoxLayout *rLay = new QVBoxLayout(registerCard);
+    rLay->setContentsMargins(40, 50, 40, 50);
+    rLay->setSpacing(15);
+
+    QLabel *rLab = new QLabel("Nový účet");
+    rLab->setObjectName("header");
+    rLab->setAlignment(Qt::AlignCenter);
+    rLab -> setStyleSheet(
+        "color: #A9A9A9; "
+        "font-size: 21px; "
+        "margin-bottom: 15px; "
+        "background: transparent;"
+        );
+
+    rUser = new QLineEdit();
+    rUser->setPlaceholderText("Zvolte uživatelské jméno");
+    rUser-> setStyleSheet(
+        "background-color: #242424;"
+        "height: 35px;"
+        "border-radius: 5px;"
+        "color:white"
+        );
+
+    QLineEdit *rPass = new QLineEdit();
+    rPass->setPlaceholderText("Zvolte silné heslo");
+    rPass->setEchoMode(QLineEdit::Password);
+    rPass -> setStyleSheet(
+        "background-color: #242424;"
+        "height: 35px;"
+        "border-radius: 5px;"
+        "color:white"
+        );
+
+    btnRegister = new QPushButton("Zaregistrovat se");
+    btnRegister->setObjectName("primary");
+    btnRegister->setCursor(Qt::PointingHandCursor);
+    btnRegister -> setStyleSheet(
+        "background-color: #3b594d;"
+        "height: 35px;"
+        "border-radius: 5px;"
+        "border: 1px solid #012400"
+        );
+
+    QPushButton *btnBack = new QPushButton("Zpět k přihlášení");
+    btnBack->setObjectName("secondary");
+    btnBack->setCursor(Qt::PointingHandCursor);
+    btnBack-> setStyleSheet(
+        "background-color: #3b594d;"
+        "height: 35px;"
+        "border-radius: 5px;"
+        "border: 1px solid #012400"
+        );
+
+    rLay->addWidget(rLab);
+    rLay->addWidget(rUser);
+    rLay->addWidget(rPass);
+    rLay->addWidget(btnRegister);
+    rLay->addWidget(btnBack);
+    registerOuterLayout->addWidget(registerCard, 0, Qt::AlignCenter);
+
+    QGraphicsDropShadowEffect *passShadow = new QGraphicsDropShadowEffect();
+    passShadow->setBlurRadius(10);
+    passShadow->setXOffset(0);
+    passShadow->setYOffset(3);
+    passShadow->setColor(QColor(118, 132, 77));
+
+
+    QGraphicsDropShadowEffect *nameShadow = new QGraphicsDropShadowEffect();
+    nameShadow->setBlurRadius(10);
+    nameShadow->setXOffset(0);
+    nameShadow->setYOffset(3);
+    nameShadow->setColor(QColor(118, 132, 77));
+    editPass->setGraphicsEffect(passShadow);
+    editUser->setGraphicsEffect(nameShadow);
+
+
+    QGraphicsDropShadowEffect *registerShadow = new QGraphicsDropShadowEffect();
+    registerShadow->setBlurRadius(10);
+    registerShadow->setXOffset(0);
+    registerShadow->setYOffset(3);
+    registerShadow->setColor(QColor(118, 132, 77));
+    rUser->setGraphicsEffect(registerShadow);
+
+    QGraphicsDropShadowEffect *registerPassShadow = new QGraphicsDropShadowEffect();
+    registerPassShadow->setBlurRadius(10);
+    registerPassShadow->setXOffset(0);
+    registerPassShadow->setYOffset(3);
+    registerPassShadow->setColor(QColor(118, 132, 77));
+    rPass->setGraphicsEffect(registerPassShadow);
+
+    QHBoxLayout *editorMainLayout = new QHBoxLayout(editorPage);
+    editorMainLayout->setContentsMargins(0, 0, 0, 0);
+    editorMainLayout->setSpacing(0);
+
+    NoteTree = new QTreeWidget();
+    NoteTree->setHeaderHidden(true);
+    NoteTree->setMinimumSize(250, 600);
+    NoteTree->setMaximumSize(250, 1100);
+    NoteTree->setStyleSheet("background-color: #202020; color: white;");
+    NoteTree->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    NoteTree->setContextMenuPolicy(Qt::CustomContextMenu);
+    editorMainLayout->addWidget(NoteTree);
+
+    QVBoxLayout *rightLayout = new QVBoxLayout();
+    editorMainLayout->addLayout(rightLayout);
+
+    toolLayout = new QVBoxLayout();
+    toolLayout->setAlignment(Qt::AlignTop);
+    rightLayout->addLayout(toolLayout);
+
+    topToolBar = new QToolBar();
+    toolLayout->addWidget(topToolBar);
+
+    file = new QMenu("File");
+    file->setStyleSheet("background-color: #202020; color: white;");
+    topToolBar->addAction(file->menuAction());
+
+    saveFile = new QAction("Save file");
+    saveFile->setShortcut(QKeySequence("Ctrl+S"));
+    connect(saveFile, &QAction::triggered, this, &Window::savingFile);
+
+    insertFile = new QAction("Insert file");
+    insertFile->setShortcut(QKeySequence("Ctrl+O"));
+    connect(insertFile, &QAction::triggered, this, &Window::insertingFile);
+
+    print = new QAction("Print");
+    print->setShortcut(QKeySequence("Ctrl+P"));
+    connect(print, &QAction::triggered, this, &Window::printing);
+
+    file->addAction(saveFile);
+    file->addAction(insertFile);
+    file->addAction(print);
+
+    view = new QMenu("View");
+    view->setStyleSheet("background-color: #202020; color: white;");
+    topToolBar->addAction(view->menuAction());
+
+    appCustom = new QAction("App custom");
+    appCustom->setShortcut(QKeySequence("Shift+C"));
+    connect(appCustom, &QAction::triggered, this, &Window::appCustomTrigg);
+    view->addAction(appCustom);
+
+    toggleSidebar = new QAction("Toggle bar");
+    toggleSidebar->setShortcut(QKeySequence("Ctrl+B"));
+    toggleSidebar->setCheckable(true);
+    connect(toggleSidebar, &QAction::triggered, this, &Window::ToggleToolbar);
+    view->addAction(toggleSidebar);
+
+    toggleMenuBar = new QAction("Toggle menu bar");
+    toggleMenuBar->setShortcut(QKeySequence("Ctrl+C"));
+    toggleMenuBar->setCheckable(true);
+    connect(toggleMenuBar, &QAction::triggered, this, &Window::ToggleMenubar);
+    view->addAction(toggleMenuBar);
+
+    toolbar = new QToolBar("Main Toolbar", this);
+    toolbar->setStyleSheet("background-color: #202020; color: white;");
+    rightLayout->addWidget(toolbar);
+
+    insert = new QMenu("Insert", this);
+    insert->setIcon(QIcon(":/insert"));
+    toolbar->addAction(insert->menuAction());
+
+    line = new QAction("Line", this);
+    insert->addAction(line);
+    connect(line, &QAction::triggered, this, &Window::doLine);
+
+    table = new QAction("Table", this);
+    insert->addAction(table);
+    connect(table, &QAction::triggered, this, &Window::createTable);
+
+    date = new QAction("Date", this);
+    insert->addAction(date);
+    connect(date, &QAction::triggered, this, &Window::insertDate);
+
+    time = new QAction("Time", this);
+    insert->addAction(time);
+    connect(time, &QAction::triggered, this, &Window::insertTime);
+
+    quote = new QAction("Quote", this);
+    insert->addAction(quote);
+    connect(quote, &QAction::triggered, this, &Window::insertQuote);
+
+    codeBlock = new QAction("Code Block", this);
+    insert->addAction(codeBlock);
+    connect(codeBlock, &QAction::triggered, this, &Window::CodeBlock);
+
+    back = new QAction(QIcon(":/back"), "", this);
+    toolbar->addAction(back);
+    connect(back, &QAction::triggered, this, &Window::undo);
+
+    next = new QAction(QIcon(":/next"), "", this);
+    toolbar->addAction(next);
+    connect(next, &QAction::triggered, this, &Window::redo);
+
+    font = new QMenu(tr("Fonts"), this);
+    fontGroup = new QActionGroup(this);
+    QStringList fontTexts = {"Arial", "Courier New", "Consolas", "Comic Sans MS", "Roboto Mono", "Helvetica", "Times New Roman", "Georgia", "Sans Serif", "Calibri", "Noto Serif", "Lato"};
+    createActions(font, fontGroup, fontTexts, [this](const QString &text) { setFont(text); });
+    toolbar->addAction(font->menuAction());
+
+    sizeMenu = new QMenu(tr("Size"), this);
+    sizesAction = new QActionGroup(this);
+    QStringList sizeTexts = {"8", "9", "10", "12", "14", "16", "18", "20", "22", "24", "26", "28", "35", "45", "55", "65", "75"};
+    createActions(sizeMenu, sizesAction, sizeTexts, [this](const QString &text) { setSize(text.toInt()); });
+    toolbar->addAction(sizeMenu->menuAction());
+
+    specialText = new QMenu("", this);
+    specialText->setIcon(QIcon(":/special"));
+    bold = new QAction(QIcon(":/bold"), "", this);
+    specialText->addAction(bold);
+    connect(bold, &QAction::triggered, this, &Window::setBold);
+    cursive = new QAction(QIcon(":/Cursive"), "", this);
+    specialText->addAction(cursive);
+    connect(cursive, &QAction::triggered, this, &Window::setCursive);
+
+    underline = new QMenu("", this);
+    underline->setIcon(QIcon(":/underline"));
+    toolbar->addAction(underline->menuAction());
+    toolbar->addAction(specialText->menuAction());
+
+    QActionGroup* underlineGroup = new QActionGroup(this);
+    QStringList underlineTexts = {"None", "Single", "Dash Dotted", "Dotted", "Wavy", "Dashed"};
+    createActions(underline, underlineGroup, underlineTexts, [this](const QString &text) { setUnderlineStyle(text); });
+
+    borderline = new QMenu("", this);
+    borderline->setIcon(QIcon(":/border"));
+    toolbar->addAction(borderline->menuAction());
+    QActionGroup* BorderType = new QActionGroup(this);
+    QStringList borderTexts = {"None", "Solid", "Dotted", "Dashed", "Double", "DotDash", "DotDotDash", "Groove", "Ridge", "Inset", "Outset"};
+    createActions(borderline, BorderType, borderTexts, [this](const QString &text) { setBorderlineStyle(text); });
+
+    lists = new QMenu("", this);
+    lists->setIcon(QIcon(":/list"));
+    toolbar->addAction(lists->menuAction());
+    listGroup = new QActionGroup(this);
+    QStringList listTexts = {"Decimal", "Empty circle", "Filled circle", "Lower Alpha", "Upper Alpha", "Lower Roman", "Upper Roman", "Filled square"};
+    createActions(lists, listGroup, listTexts, [this](const QString &text) { setList(text); });
+
+    colors = new QMenu("", this);
+    colors->setIcon(QIcon(":/color"));
+    toolbar->addAction(colors->menuAction());
+    colorGroup = new QActionGroup(this);
+    QStringList colorTexts = {"Black", "Red", "Green", "Blue", "Yellow", "Purple", "Orange", "Gray", "White", "Cyan", "Pink", "Custom..."};
+    createActions(colors, colorGroup, colorTexts, [this](const QString &text) { setTextColor(text); });
+
+    UnderlineColors = new QMenu("Underline Color", this);
+    UnderlineColors->setIcon(QIcon(":/pen"));
+    toolbar->addAction(UnderlineColors->menuAction());
+    QActionGroup* underlineColorGroup = new QActionGroup(this);
+    QStringList colorUnderline = {"Black", "White", "Red", "Green", "Blue", "Purple", "Pink", "Light Blue", "Light Green", "Gray", "Orange", "Custom..."};
+    createActions(UnderlineColors, underlineColorGroup, colorUnderline, [this](const QString &text) { setUnderlineColor(text); });
+
+    AlignLeft = new QAction(QIcon(":/AlignLeft"), "", this);
+    toolbar->addAction(AlignLeft);
+    connect(AlignLeft, &QAction::triggered, this, &Window::setLeft);
+
+    AlignCenter = new QAction(QIcon(":/AlignCenter"), "", this);
+    toolbar->addAction(AlignCenter);
+    connect(AlignCenter, &QAction::triggered, this, &Window::setCenter);
+
+    AlignRight = new QAction(QIcon(":/AlignRight"), "", this);
+    toolbar->addAction(AlignRight);
+    connect(AlignRight, &QAction::triggered, this, &Window::setRight);
+
+    indentie = new QAction(QIcon(":/AlignBlock"), "", this);
+    toolbar->addAction(indentie);
+    connect(indentie, &QAction::triggered, this, &Window::setIndent);
+
+    QAction *UnindentAction = new QAction(QIcon(":/unindent"), "", this);
+    toolbar->addAction(UnindentAction);
+    connect(UnindentAction, &QAction::triggered, this, &Window::unindentText);
+
+    bucket = new QMenu("", this);
+    bucket->setIcon(QIcon(":/bucket"));
+    toolbar->addAction(bucket->menuAction());
+    bucketGroup = new QActionGroup(this);
+    QStringList bucketColors = {"Black", "Red", "Green", "Blue", "Yellow", "Purple", "Orange", "Gray", "White", "Cyan", "Pink", "Default", "Custom..."};
+    createActions(bucket, bucketGroup, bucketColors, [this](const QString &text) { setBucketColor(text); });
+
+    tableMenu = new QMenu();
+    tableMenu->setIcon(QIcon(":/table"));
+    tableMenu->setStyleSheet("background-color: #202020; color: white;");
+    toolbar->addAction(tableMenu->menuAction());
+    tableAct = new QAction("add row");
+    tableMenu->addAction(tableAct);
+    connect(tableAct, &QAction::triggered, this, &Window::addTableRow);
+    tableAct2 = new QAction("Add column");
+    tableMenu->addAction(tableAct2);
+    connect(tableAct2, &QAction::triggered, this, &Window::addTableColumn);
+    QAction* deleteRowAct = new QAction("Delete row");
+    tableMenu->addAction(deleteRowAct);
+    connect(deleteRowAct, &QAction::triggered, this, &Window::deleteTableRow);
+    QAction* deleteColAct = new QAction("Delete column");
+    tableMenu->addAction(deleteColAct);
+    connect(deleteColAct, &QAction::triggered, this, &Window::deleteTableColumn);
+
+    edit = new QTextEdit(this);
+    edit->setMinimumWidth(500);
+    edit->setStyleSheet("background-color: #202020; color: white;");
+    edit->installEventFilter(this);
+    rightLayout->addWidget(edit);
+
+    QAction *pasteAction = new QAction(tr("Paste"), this);
+    pasteAction->setShortcut(QKeySequence::Paste);
+    connect(pasteAction, &QAction::triggered, this, &Window::handleImagePaste);
+    edit->addAction(pasteAction);
+
+
+    stackedWidget->addWidget(loginPage);
+    stackedWidget->addWidget(registerPage);
+    stackedWidget->addWidget(editorPage);
+    stackedWidget->setCurrentIndex(0);
+
+    auth = new AuthManager(this);
+    connect(btnGoToRegister, &QPushButton::clicked, this, &Window::onGoToRegister);
+    connect(btnBack, &QPushButton::clicked, this, &Window::onGoToLogin);
+
+    connect(btnLogin, &QPushButton::clicked, this, [=](){
+        if(editUser->text().isEmpty() || editPass->text().isEmpty()) return;
+        auth->login(editUser->text(), editPass->text());
+    });
+
+    connect(btnRegister, &QPushButton::clicked, this, [=](){
+        if(rUser->text().isEmpty() || rPass->text().isEmpty()) return;
+        auth->registerUser(rUser->text(), rPass->text());
+    });
+
+    connect(auth, &AuthManager::loginSuccess, this, [=](QString token, int userId){
+        this->myToken = token;
+        this->myUserId = userId;
+        stackedWidget->setCurrentIndex(2);
+    });
+
+    connect(auth, &AuthManager::registerSuccess, this, [=](){
+        stackedWidget->setCurrentIndex(0);
+        editPass->clear();
+    });
+
+    notebookData = QMap<QString, QMap<QString, QString>>();
+    QTreeWidgetItem *addNotebookItem = new QTreeWidgetItem(NoteTree);
+    addNotebookItem->setText(0, "+ Add Notebook");
+
+    connect(NoteTree, &QTreeWidget::itemClicked, this, [this](QTreeWidgetItem *item) {
+        if (item->text(0) == "+ Add Notebook") {
+            addNotebook();
+        }
+    });
+
+    QTimer* autoSaveTimer = new QTimer(this);
+    connect(autoSaveTimer, &QTimer::timeout, this, [this]() {
+        if (contentModified) {
+            savePageContent();
+            contentModified = false;
+        }
+    });
+    autoSaveTimer->start(30000);
+
+    connect(NoteTree, &QTreeWidget::customContextMenuRequested, this, &Window::showCustomMenu);
+    setupNotebookConnections();
+    restoreState();
+    setMouseTracking(true);
+}
+
+void Window::paintEvent(QPaintEvent *event)
+{
+    QStyleOption opt;
+    opt.initFrom(this);
+    QPainter p(this);
+    style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
+
+    QWidget::paintEvent(event);
+}
+
+void Window::showCustomMenu(const QPoint &pos) {
+    QMenu *menu = new QMenu(this);
+    deleteNote = new QAction("Delete Note");
+    connect(deleteNote, &QAction::triggered, this, &Window::deleteNoteAction);
+    menu -> addAction(deleteNote);
+    QPoint globalPos = NoteTree->mapToGlobal(pos);
+    menu->popup(globalPos);
+}
+
+//an action that deletes specific note from the TreeView
+void Window::deleteNoteAction() {
+
+    //current item is selected (current note)
+        QTreeWidgetItem* selectedItem = NoteTree->currentItem();
+        if (!selectedItem) {
+            return;
+        }
+        //add page and add notebook should not be deletable, cause its needed for proper working
+
+        if (selectedItem->text(0) == "+ Add Page" || selectedItem->text(0) == "+ Add Notebook") {
+            return;
+        }
+
+        //parent item
+        QTreeWidgetItem* parentItem = selectedItem->parent();
+       //Would ask an user, if he wants to delete the note using QMessageBox
+        QMessageBox::StandardButton reply = QMessageBox::question(
+            this,
+            "Confirm Delete",
+            QString("Are you sure you want to delete '%1'?")
+                .arg(selectedItem->text(0)),
+            QMessageBox::Yes | QMessageBox::No
+            );
+
+        //define what happens if user clicks yes
+        if (reply == QMessageBox::Yes) {
+            if (parentItem) {
+                // It's a page item, delete it from its parent (notebook)
+                QString notebookName = parentItem->text(0);
+                QString pageName = selectedItem->text(0);
+                //it should be unique note based on its string, with arguments of its notebook and page name
+                QString uniqueKey = QString("%1_%2").arg(notebookName, pageName);
+
+                // Remove from notebookData
+                if (notebookData.contains(notebookName) && notebookData[notebookName].contains(pageName)) {
+                    notebookData[notebookName].remove(pageName);
+                }
+
+                // Remove removed item from settings so it wouldnt be restored again if we turn off and on the app
+                QSettings settings(getConfigPath(), QSettings::IniFormat);
+                settings.beginGroup("PageContents");
+                settings.remove(uniqueKey);
+                settings.endGroup();
+                settings.sync();
+
+                // Remove the item from the tree
+                parentItem->removeChild(selectedItem);
+                delete selectedItem;
+                selectedItem = nullptr;
+
+                // If the deleted page was the current page, clear the editor
+                if (currentPage == selectedItem) {
+                    edit->clear();
+                    currentPage = nullptr;
+                }
+
+                // After deleting a page, we might want to load another page in the same notebook
+                if (parentItem->childCount() > 1) { // Check if there are other pages
+                    QTreeWidgetItem* nextItem = parentItem->child(0);
+                    if (nextItem && nextItem->text(0) != "+ Add Page") {
+                        loadPageContent(nextItem);
+                        NoteTree->setCurrentItem(nextItem);
+                    } else if (parentItem->childCount() == 1 && parentItem->child(0)->text(0) == "+ Add Page") {
+                        edit->clear();
+                        currentPage = nullptr;
+                    }
+                } else if (parentItem->childCount() == 1 && parentItem->child(0)->text(0) == "+ Add Page") {
+                    edit->clear();
+                    currentPage = nullptr;
+                }
+
+            } else {
+                // It's a top-level notebook item
+                QString notebookName = selectedItem->text(0);
+
+                // Remove all associated page content from settings
+                QSettings settings(getConfigPath(), QSettings::IniFormat);
+                settings.beginGroup("PageContents");
+                QMapIterator<QString, QString> i(notebookData[notebookName]);
+                while (i.hasNext()) {
+                    i.next();
+                    QString uniqueKey = QString("%1_%2").arg(notebookName, i.key());
+                    settings.remove(uniqueKey);
+                }
+                settings.endGroup();
+                settings.sync();
+
+                notebookData.remove(notebookName);
+
+                delete NoteTree->takeTopLevelItem(NoteTree->indexOfTopLevelItem(selectedItem));
+                selectedItem = nullptr; // Important to nullify the pointer
+
+                // If the deleted notebook contained the current page, clear the editor
+                if (currentPage && currentPage->parent() == selectedItem) {
+                    edit->clear();
+                    currentPage = nullptr;
+                }
+            }
+
+            // Save the updated notebook structure (which now excludes the deleted item)
+            saveNotebookStructure();
+        }
+    }
+
+void Window::setUnderlineColor(const QString &colorName)
+{
+    QColor color;
+
+    if (colorName == "Black") color = Qt::black;
+    if (colorName == "White") color = Qt::white;
+    else if (colorName == "Red") color = Qt::red;
+    else if (colorName == "Green") color = Qt::green;
+    else if (colorName == "Blue") color = Qt::blue;
+    else if (colorName == "Purple") color = QColor(128, 0, 128);
+    else if (colorName == "Pink") color = QColor(255,153,255);
+    else if (colorName == "Light Blue") color = QColor(204,255,255);
+    else if (colorName == "Light Green") color = QColor(204,255,204);
+    else if (colorName == "Gray") color = QColor(129,129,129);
+     else if (colorName == "Orange") color = QColor(255,178,102);
+    else if (colorName == "Custom...") {
+        color = QColorDialog::getColor(currentUnderlineColor, this, "Select Underline Color");
+        if (!color.isValid()) return;
+    }
+
+    currentUnderlineColor = color;
+
+    QTextCursor cursor = edit->textCursor();
+    QTextCharFormat format;
+    format.setUnderlineColor(color);
+
+    if (cursor.hasSelection()) {
+        cursor.mergeCharFormat(format);
+    } else {
+        edit->mergeCurrentCharFormat(format);
+    }
+}
+
+
+//setting the size of the selected text
+void Window::setSize(int size)
+{
+    currentSize = size;
+
+
+    QTextCursor cursor = edit->textCursor();
+    if (cursor.hasSelection()) {
+        QTextCharFormat format;
+        format.setFontPointSize(currentSize);
+        cursor.mergeCharFormat(format);
+    } else {
+        QFont font = edit->font();
+        font.setPointSize(currentSize);
+     edit ->setFont(font);
+    }
+}
+
+//function that creates actions for fonts, colors etc. to not having creating them manually
+void Window::createActions(QMenu *menu, QActionGroup *group, const QStringList &texts, const std::function<void(const QString &)> &slot)
+{
+    for (const QString &text : texts) {
+        QAction *action = new QAction(text, this);
+        action->setCheckable(true);
+        group->addAction(action);
+        menu->addAction(action);
+        connect(action, &QAction::triggered, [slot, text]() { slot(text); });
+    }
+    group->setExclusive(true);
+}
+
+void Window::setBold() {
+    QTextCursor cursor = edit->textCursor();
+    QTextCharFormat format = cursor.charFormat();
+    QFont font = format.font();
+    font.setBold(!font.bold());
+    format.setFont(font);
+    cursor.mergeCharFormat(format);
+    edit->mergeCurrentCharFormat(format);
+}
+
+void Window::setCursive(){
+    QTextCursor cursor2 = edit->textCursor();
+    QTextCharFormat format2 = cursor2.charFormat();
+    QFont font2 = format2.font();
+    font2.setItalic(!font2.italic());
+    format2.setFont(font2);
+    cursor2.mergeCharFormat(format2);
+    edit->mergeCurrentCharFormat(format2);
+}
+
+void Window::undo() {
+   edit->undo();
+}
+
+void Window::redo() {
+   edit->redo();
+}
+
+void Window::ToggleToolbar() {
+    NoteTree -> setHidden(toggleSidebar->isChecked());
+    NoteTree -> isHidden();
+}
+void Window::ToggleMenubar() {
+    toolbar -> setHidden(toggleMenuBar->isChecked());
+    toolbar -> isHidden();
+
+}
+
+//function of the window for customization of app
+void Window::appCustomTrigg() {
+    //setting the scrollarea of custom window
+    scrollBar = new QScrollArea();
+    scrollBar->setWindowTitle("Custom Settings");
+    scrollBar->setWidgetResizable(true);
+    scrollBar->resize(300, 400);
+
+    //the custom widget
+    custom = new QWidget(scrollBar);
+    custom->setStyleSheet("background-color:#202020;");
+    customLayout = new QVBoxLayout(custom);
+
+    customLayout->setContentsMargins(5, 5, 5, 5);
+    customLayout->setSpacing(5);
+
+     //the label for font size
+    QLabel *fontSizeLabel = new QLabel("Font Size");
+    fontSizeLabel->setStyleSheet("color:white;");
+    customLayout->addWidget(fontSizeLabel);
+
+    //the ComboBox fort font sizes and its stylesheet
+    QComboBox *fontSizeComboBox = new QComboBox(custom);
+    fontSizeComboBox->setStyleSheet(
+        "QComboBox { background-color: #303030; color: white; border: 1px solid #505050; padding: 5px; }"
+        "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: center right; width: 20px; }"
+        "QComboBox QAbstractItemView { background-color: #303030; color: white; selection-background-color: #505050; }"
+        "QComboBox QAbstractItemView::item { padding: 5px; }"
+        );
+
+    //string where function picks which size to set based on its value
+    QStringList fontsizeTexts = {
+        "8", "9", "10", "12", "14", "16", "18", "20", "22", "24", "26", "28", "35"
+    };
+    //adding these values to combobox
+    fontSizeComboBox->addItems(fontsizeTexts);
+
+    //calling our functions where the sizes are defined by clicking on ComboBox item
+    connect(fontSizeComboBox, QOverload<int>::of(&QComboBox::activated),
+            this, [this, fontSizeComboBox](int index) {
+                int selectedSize = fontSizeComboBox->currentText().toInt();
+                setfontSize(selectedSize);
+            });
+    customLayout->addWidget(fontSizeComboBox);
+
+
+  //the label of color picking
+    QLabel *colorsLabel = new QLabel("Background color");
+    colorsLabel->setStyleSheet("color:white;");
+    customLayout->addWidget(colorsLabel);
+//the combobox where user can pick colors and its stylesheet
+    QComboBox *colorComboBox = new QComboBox(custom);
+    colorComboBox->setStyleSheet(
+        "QComboBox { background-color: #303030; color: white; border: 1px solid #505050; padding: 5px; }"
+        "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: center right; width: 20px; }"
+        "QComboBox QAbstractItemView { background-color: #303030; color: white; selection-background-color: #505050; }"
+        "QComboBox QAbstractItemView::item { padding: 5px; }"
+        );
+
+    //the list of colors it can use
+    QList<QColor> appColors = {
+        Qt::black, Qt::red, Qt::green, Qt::blue, Qt::magenta, Qt::darkGray, Qt::white, Qt::cyan, QColor(255, 192, 203),  QColor(64,64,64)
+    };
+    QStringList appColorNames = {
+        "Black", "Red", "Green", "Blue",  "Purple", "Dark Gray", "White", "Cyan", "Pink", "Default"
+    };
+
+    for (int i = 0; i < appColors.size(); ++i) {
+        QPixmap pix(16, 16);
+        pix.fill(appColors.at(i));
+        colorComboBox->addItem(QIcon(pix), appColorNames.at(i));
+    }
+    colorComboBox->addItem("Custom...");
+
+//handling the possibility of custom option - let user pick color from pallete
+    connect(colorComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [this, colorComboBox](int index) {
+                if (colorComboBox->itemText(index) == "Custom...") {
+                    QColor newColor = QColorDialog::getColor(Qt::white, this, "Select Custom Color");
+                    if (newColor.isValid()) {
+                        setAppColor(newColor.name()); // <--- HERE'S THE ISSUE
+                        // ...
+                    }
+                } else {
+                    QString selectedColorName = colorComboBox->itemText(index);
+                    setAppColor(selectedColorName);
+                    // ...
+                }
+
+            });
+
+
+    customLayout->addWidget(colorComboBox);
+
+
+    QLabel *NoteColors = new QLabel("Text color");
+    NoteColors->setStyleSheet("color:white;");
+    customLayout->addWidget(NoteColors);
+    QComboBox *NoteComboBox = new QComboBox(custom);
+   NoteComboBox->setStyleSheet(
+        "QComboBox { background-color: #303030; color: white; border: 1px solid #505050; padding: 5px; }"
+        "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: center right; width: 20px; }"
+        "QComboBox QAbstractItemView { background-color: #303030; color: white; selection-background-color: #505050; }"
+        "QComboBox QAbstractItemView::item { padding: 5px; }"
+        );
+
+    //the list of colors it can use
+    QList<QColor> noteColors = {
+       Qt::black, Qt::red, Qt::green, Qt::blue, Qt::magenta, Qt::darkGray, Qt::white, Qt::cyan, QColor(255, 192, 203)
+    };
+    QStringList noteColorNames = {
+        "Black", "Red", "Green", "Blue",  "Purple", "Dark Gray", "White", "Cyan", "Pink",
+    };
+
+    for (int i = 0; i < noteColors.size(); ++i) {
+        QPixmap pix(16, 16);
+        pix.fill(noteColors.at(i));
+        NoteComboBox->addItem(QIcon(pix), noteColorNames.at(i));
+    }
+    NoteComboBox->addItem("Custom...");
+
+    //handling the possibility of custom option - let user pick color from pallete
+    connect(NoteComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [this, NoteComboBox](int index) {
+                if (NoteComboBox->itemText(index) == "Custom...") {
+                    QColor newColor = QColorDialog::getColor(Qt::white, this, "Select Custom Color");
+                    if (newColor.isValid()) {
+                        setNoteColor(newColor.name());
+
+                    }
+                } else {
+                    QString selectedColorName = NoteComboBox->itemText(index);
+                    setNoteColor(selectedColorName);
+                }
+
+            });
+    customLayout -> addWidget(NoteComboBox);
+    QLabel *toolBarColors = new QLabel("Toolbar color");
+    toolBarColors->setStyleSheet("color:white;");
+    customLayout->addWidget(toolBarColors);
+    QComboBox *toolBarCombo = new QComboBox(custom);
+    customLayout -> addWidget(toolBarCombo);
+    toolBarCombo ->setStyleSheet(
+        "QComboBox { background-color: #303030; color: white; border: 1px solid #505050; padding: 5px; }"
+        "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: center right; width: 20px; }"
+        "QComboBox QAbstractItemView { background-color: #303030; color: white; selection-background-color: #505050; }"
+        "QComboBox QAbstractItemView::item { padding: 5px; }"
+        );
+
+    //the list of colors it can use
+    QList<QColor> toolBarColor = {
+         Qt::black, Qt::red, Qt::green, Qt::blue, Qt::magenta, Qt::darkGray, Qt::white, Qt::cyan, QColor(255, 192, 203),  QColor(32, 32, 32)
+    };
+    QStringList toolbarColorNames = {
+        "Black", "Red", "Green", "Blue",  "Purple", "Dark Gray", "White", "Cyan", "Pink", "Default"
+    };
+
+    for (int i = 0; i < toolBarColor.size(); ++i) {
+        QPixmap pix(16, 16);
+        pix.fill(toolBarColor.at(i));
+        toolBarCombo->addItem(QIcon(pix), toolbarColorNames.at(i));
+    }
+    toolBarCombo->addItem("Custom...");
+
+    //handling the possibility of custom option - let user pick color from pallete
+    connect(toolBarCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [this, toolBarCombo](int index) {
+                if (toolBarCombo->itemText(index) == "Custom...") {
+                    QColor newColor = QColorDialog::getColor(Qt::white, this, "Select Custom Color");
+                    if (newColor.isValid()) {
+                        setToolbarColor(newColor.name());
+
+                    }
+                } else {
+                    QString selectedColorName = toolBarCombo->itemText(index);
+                    setToolbarColor(selectedColorName);
+                }
+
+            });
+
+    QLabel *AppFont = new QLabel("Font");
+    AppFont->setStyleSheet("color:white;");
+    customLayout->addWidget(AppFont);
+
+    //the ComboBox fort font sizes and its stylesheet
+    QComboBox *AppFontCombo = new QComboBox(custom);
+    AppFontCombo ->setStyleSheet(
+        "QComboBox { background-color: #303030; color: white; border: 1px solid #505050; padding: 5px; }"
+        "QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: center right; width: 20px; }"
+        "QComboBox QAbstractItemView { background-color: #303030; color: white; selection-background-color: #505050; }"
+        "QComboBox QAbstractItemView::item { padding: 5px; }"
+        );
+
+    //string where function picks which size to set based on its value
+    QStringList appfontTexts = {
+                                "Arial",
+                                "Courier New",
+                                "Consolas",
+                                "Comic Sans MS",
+                                "Roboto Mono",
+                                "Helvetica",
+                                "Times New Roman",
+                                "Georgia",
+                                "Sans Serif",
+                                "Calibri",
+                                "Noto Serif",
+                                "Lato"
+    };
+    //adding these values to combobox
+   AppFontCombo->addItems(appfontTexts);
+
+    //calling our functions where the sizes are defined by clicking on ComboBox item
+    connect(AppFontCombo, QOverload<int>::of(&QComboBox::activated),
+            this, [this, AppFontCombo](int index) {
+                QString selectedSize = AppFontCombo->currentText();
+                setAppFont(selectedSize);
+            });
+    customLayout->addWidget(AppFontCombo);
+
+
+     customLayout->addStretch(1);
+    scrollBar->setWidget(custom);
+    scrollBar->show();
+}
+
+void Window::setAppFont(const QString &fontName){
+    currentFont = fontName;
+    QFont newAppFont(fontName);
+
+
+    QString toolbarStyle = QString(
+                               "QToolBar { font-family: \"%1\";  }"
+                               "QToolBar QLabel { font-family: \"%1\";  }"
+                               "QToolBar QToolButton {font-family: \"%1\"; }"
+                               )
+                               .arg(fontName);
+
+    QString NoteStyle = QString(
+                               "QTreeView { font-family: \"%1\"; background-color:#202020; }"
+                               )
+                               .arg(fontName);
+
+    toolbar->setStyleSheet(toolbarStyle);
+    topToolBar -> setStyleSheet(toolbarStyle);
+    NoteTree -> setStyleSheet(NoteStyle);
+
+    }
+
+
+    void Window::onGoToRegister() {
+        stackedWidget->setCurrentIndex(1);
+    }
+
+    void Window::onGoToLogin() {
+        stackedWidget->setCurrentIndex(0);
+    }
+void Window::setAppColor(const QString &colorName) {
+    QColor color;
+     currentAppColor = color;
+    if (colorName == "Black") {
+        color = Qt::black;
+    } else if (colorName == "Red") {
+        color = Qt::red;
+    } else if (colorName == "Green") {
+        color = Qt::green;
+    } else if (colorName == "Blue") {
+        color = Qt::blue;
+    } else if (colorName == "Purple") {
+        color = QColor(128, 0, 128);
+    } else if (colorName == "Gray") {
+        color = Qt::gray;
+    } else if (colorName == "White") {
+        color = Qt::white;
+    } else if (colorName == "Cyan") {
+        color = Qt::cyan;
+    } else if (colorName == "Pink") {
+        color = QColor(255, 192, 203);
+    } else if (colorName == "Default") {
+        color = QColor(64, 64, 64);
+    } else if (colorName == "Custom...") {
+        QColorDialog::getColor(QApplication::palette().color(QPalette::WindowText), this, "Choose Custom Color");
+        if (!color.isValid()) {
+            return;
+        }
+        QPalette palette = this->palette();
+        palette.setColor(QPalette::WindowText, color);
+        this->setPalette(palette);
+        return;
+    } else {
+
+        color = QColor(colorName);
+        if (!color.isValid()) {
+            color = Qt::black;
+        }
+    }
+
+     this -> setPalette(color);
+    currentAppColor = color.name();
+}
+void Window::setNoteColor(const QString &colorName) {
+    QColor color;
+    if (colorName == "Black") {
+        color = Qt::black;
+    } else if (colorName == "Red") {
+        color = Qt::red;
+    } else if (colorName == "Green") {
+        color = Qt::green;
+    } else if (colorName == "Blue") {
+        color = Qt::blue;
+    } else if (colorName == "Purple") {
+        color = QColor(128, 0, 128);
+    } else if (colorName == "Gray") {
+        color = Qt::gray;
+    } else if (colorName == "White") {
+        color = Qt::white;
+    } else if (colorName == "Cyan") {
+        color = Qt::cyan;
+    } else if (colorName == "Pink") {
+        color = QColor(255, 192, 203);
+    }
+    else {
+        color = QColor(colorName);
+        if (!color.isValid()) {
+
+            color = Qt::black;
+        }
+    }
+
+    QPalette palette = NoteTree->palette();
+    palette.setColor(QPalette::WindowText, color);
+    palette.setColor(QPalette::Text, color);
+    NoteTree->setPalette(palette);
+    NoteTree->update();
+    currentNoteColor = color.name();
+
+
+    if (toolbar) {
+         QString hexColor = color.name();
+
+        QString toolbarCombinedStyle = QString(
+                                           "QToolBar QLabel { color: %1; }"
+                                           "QToolBar QToolButton { color: %1; }"
+                                           )
+                                           .arg(hexColor);
+        toolbar->setStyleSheet(toolbarCombinedStyle);
+        topToolBar -> setStyleSheet(toolbarCombinedStyle);
+}
+}
+
+void Window::setToolbarColor(const QString &colorName)
+{
+    QColor color;
+    if (colorName == "Black") {
+        color = Qt::black;
+    } else if (colorName == "Red") {
+        color = Qt::red;
+    } else if (colorName == "Green") {
+        color = Qt::green;
+    } else if (colorName == "Blue") {
+        color = Qt::blue;
+    } else if (colorName == "Purple") {
+        color = QColor(128, 0, 128);
+    } else if (colorName == "Gray") {
+        color = Qt::gray;
+    } else if (colorName == "White") {
+        color = Qt::white;
+    } else if (colorName == "Cyan") {
+        color = Qt::cyan;
+    } else if (colorName == "Pink") {
+        color = QColor(255, 192, 203);
+    } else if (colorName == "Default") {
+        color = QColor(32, 32, 32);
+    }
+    else {
+        color = QColor(colorName);
+        if (!color.isValid()) {
+
+            color = Qt::black;
+        }
+    }
+
+    QString hexColor = color.name();
+
+    QString combinedStyleSheet = QString(
+
+                                     "QToolBar { background-color: %1; }"
+                                     "QToolBar QLabel { color: white;  }"
+                                     "QToolBar QToolButton { color: white; }"
+                                     "QTextEdit {color: white; }"
+                                     "QTreeView {color:white; }"
+
+
+                                     "QMenu { "
+                                     "background-color: %1; "
+                                     "border: 1px solid #505050; "
+                                     "}"
+                                     "QMenu::item { "
+                                     "background-color: transparent; "
+                                     "padding: 5px 20px; "
+                                     "color: white; "
+                                     "}"
+                                     "QMenu::item:selected { "
+                                     "background-color: #505050; "
+                                     "color: white; "
+                                     "}"
+                                     "QMenu::separator { "
+                                     "height: 1px; "
+                                     "background-color: #707070; "
+                                     "margin-left: 10px; "
+                                     "margin-right: 10px; "
+                                     "}"
+                                     ).arg(hexColor);
+
+
+    this->setStyleSheet(combinedStyleSheet);
+    currentToolbarColor = hexColor;
+}
+
+
+void Window::setfontSize(int size) {
+    currentfontSize = size;
+    QFont appFont = QApplication::font();
+    appFont.setPointSize(currentfontSize);
+    QApplication::setFont(appFont);
+
+    QString toolbarStyleTemplate = QString(
+        "QToolBar { font-size: %1pt; }"
+        "QToolBar QLabel { font-size: %1pt; }"
+        "QToolBar QToolButton { font-size: %1pt; }"
+        );
+
+    if (toolbar) {
+        QString toolbarStyle = toolbarStyleTemplate.arg(currentfontSize);
+        toolbar->setStyleSheet(toolbarStyle);
+    }
+
+    if (topToolBar) {
+        QString topToolbarStyle = toolbarStyleTemplate.arg(currentfontSize);
+        topToolBar->setStyleSheet(topToolbarStyle);
+    }
+
+
+    QString menuStyleTemplate = QString(
+        "QMenu { font-size: %1pt; }"
+        "QMenu::item { font-size: %1pt; }"
+        "QMenu::item:selected { font-size: %1pt; }"
+        );
+
+    if (insert) {
+        QString insertMenuStyle = menuStyleTemplate.arg(currentfontSize);
+        insert->setStyleSheet(insertMenuStyle);
+    }
+    if (font) {
+        QString fontMenuStyle = menuStyleTemplate.arg(currentfontSize);
+        font->setStyleSheet(fontMenuStyle);
+    }
+
+    if (NoteTree) {
+        QFont noteTreeFont = NoteTree->font();
+        noteTreeFont.setPointSize(currentfontSize);
+        NoteTree->setFont(noteTreeFont);
+    }
+}
+
+
+
+/*function for creating table, unfortunately i didnt manage to
+ make the table resizable by dragging. :(
+ */
+class TableSelector : public QWidget {
+public:
+    int rows = 0, cols = 0;
+    bool confirmed = false;
+    TableSelector(QWidget* parent = nullptr) : QWidget(parent, Qt::Popup) {
+        setFixedSize(200, 200);
+        setMouseTracking(true);
+    }
+protected:
+    void paintEvent(QPaintEvent*) override {
+        QPainter p(this);
+        p.fillRect(rect(), QColor(32, 32, 32));
+        for (int r = 0; r < 10; ++r) {
+            for (int c = 0; c < 10; ++c) {
+                QRect cell(c * 20 + 2, r * 20 + 2, 16, 16);
+                bool active = (r < rows && c < cols);
+                p.fillRect(cell, active ? QColor(59, 89, 77) : QColor(60, 60, 60));
+            }
+        }
+    }
+    void mouseMoveEvent(QMouseEvent* e) override {
+        rows = qBound(1, e->pos().y() / 20 + 1, 10);
+        cols = qBound(1, e->pos().x() / 20 + 1, 10);
+        update();
+    }
+    void mousePressEvent(QMouseEvent*) override {
+        confirmed = true;
+        close();
+    }
+};
+void Window::createTable() {
+    TableSelector selector(this);
+    selector.move(QCursor::pos());
+
+    QEventLoop loop;
+    connect(&selector, &QWidget::destroyed, &loop, &QEventLoop::quit);
+    selector.show();
+
+    while (selector.isVisible()) {
+        qApp->processEvents();
+    }
+
+    if (selector.confirmed) {
+        QTextCursor cursor = edit->textCursor();
+        QTextTableFormat format;
+
+        format.setBorder(1);
+        format.setBorderStyle(QTextFrameFormat::BorderStyle_Solid);
+        format.setBorderBrush(QBrush(QColor("#3b594d")));
+        format.setCellPadding(10);
+        format.setCellSpacing(0);
+        format.setWidth(QTextLength(QTextLength::PercentageLength, 100));
+        format.setAlignment(Qt::AlignLeft);
+
+        QTextTable* table = cursor.insertTable(selector.rows, selector.cols, format);
+
+        QTextTableCellFormat headerFormat;
+        headerFormat.setBackground(QColor(45, 45, 45));
+
+        for (int c = 0; c < selector.cols; ++c) {
+            table->cellAt(0, c).setFormat(headerFormat);
+        }
+    }
+}
+void Window::addTableRow() {
+    QTextCursor cursor = edit->textCursor();
+    QTextTable *table = cursor.currentTable();
+
+    if (table) {
+        QTextTableCell currentCell = table->cellAt(cursor);
+        if (!currentCell.isValid()) {
+            QMessageBox::warning(this, "Error", "Cursor not in a valid table cell.");
+            return;
+        }
+        int currentRow = currentCell.row();
+        table->insertRows(currentRow + 1, 1);
+        int newRow = currentRow + 1;
+
+        for (int col = 0; col < table->columns(); ++col) {
+            QTextTableCellFormat formatToCopy;
+            if (currentRow >= 0) {
+                // Copy format from cell above (same column)
+                formatToCopy = table->cellAt(currentRow, col).format().toTableCellFormat();
+            }
+            QTextCursor newCellCursor = table->cellAt(newRow, col).firstCursorPosition();
+            newCellCursor.setBlockCharFormat(formatToCopy);
+            newCellCursor.insertText("                     ");
+        }
+        QTextCursor newCursor = table->cellAt(newRow, 0).firstCursorPosition();
+        edit->setTextCursor(newCursor);
+    } else {
+        QMessageBox::information(this, "No Table Selected", "Please place the cursor inside a table to add a row.");
+    }
+}
+// Your existing addTableColumn function (no changes needed)
+void Window::addTableColumn() {
+    QTextCursor cursor = edit->textCursor();
+    QTextTable *table = cursor.currentTable();
+
+    if (table) {
+        QTextTableCell currentCell = table->cellAt(cursor);
+        if (!currentCell.isValid()) {
+            QMessageBox::warning(this, "Error", "Cursor not in a valid table cell.");
+            return;
+        }
+        int currentCol = currentCell.column();
+        table->insertColumns(currentCol + 1, 1);
+        int newCol = currentCol + 1;
+
+        for (int row = 0; row < table->rows(); ++row) {
+            QTextTableCellFormat formatToCopy;
+            if (currentCol >= 0) {
+                // Copy format from cell to the left (same row)
+                formatToCopy = table->cellAt(row, currentCol).format().toTableCellFormat();
+            }
+            QTextCursor newCellCursor = table->cellAt(row, newCol).firstCursorPosition();
+            newCellCursor.setBlockCharFormat(formatToCopy);
+            newCellCursor.insertText("                     ");
+        }
+        QTextCursor newCursor = table->cellAt(0, newCol).firstCursorPosition();
+        edit->setTextCursor(newCursor);
+    } else {
+        QMessageBox::information(this, "No Table Selected", "Please place the cursor inside a table to add a column.");
+    }
+}
+void Window::deleteTableRow() {
+    QTextCursor cursor = edit->textCursor();
+    QTextTable *table = cursor.currentTable();
+
+    if (table) {
+        QTextTableCell currentCell = table->cellAt(cursor);
+        if (!currentCell.isValid()) {
+            QMessageBox::warning(this, "Error", "Cursor not in a valid table cell.");
+            return;
+        }
+        int currentRow = currentCell.row();
+        // Ensure there's more than one row before deleting
+        if (table->rows() > 1) {
+            table->removeRows(currentRow, 1);
+        } else {
+
+            QMessageBox::information(this, "Cannot Delete Row", "Cannot delete the last row of the table. To remove the table, select and delete it manually.");
+        }
+    } else {
+        QMessageBox::information(this, "No Table Selected", "Please place the cursor inside a table to delete a row.");
+    }
+}
+void Window::deleteTableColumn() {
+    QTextCursor cursor = edit->textCursor();
+    QTextTable *table = cursor.currentTable();
+
+    if (table) {
+        QTextTableCell currentCell = table->cellAt(cursor);
+        if (!currentCell.isValid()) {
+            QMessageBox::warning(this, "Error", "Cursor not in a valid table cell.");
+            return;
+        }
+        int currentCol = currentCell.column();
+
+        if (table->columns() > 1) {
+            table->removeColumns(currentCol, 1);
+        } else {
+            QMessageBox::information(this, "Cannot Delete Column", "Cannot delete the last column of the table. To remove the table, select and delete it manually.");
+        }
+    } else {
+        QMessageBox::information(this, "No Table Selected", "Please place the cursor inside a table to delete a column.");
+    }
+}
+void Window::insertDate() {
+
+   QDateTime dateTime = dateTime.currentDateTime();
+    QString currentDateTime = dateTime.toString("yyyy-MM-dd");
+    edit -> insertPlainText(currentDateTime);
+}
+
+void Window::insertTime(){
+    QDateTime dateTime = dateTime.currentDateTime();
+    QString currentDateTime = dateTime.toString("HH:mm");
+    edit -> insertPlainText(currentDateTime);
+}
+
+void Window::insertQuote() {
+    QTextCursor cursor = edit->textCursor();
+    QString selectedText = cursor.selectedText();
+   QTextCharFormat charFormat = cursor.charFormat();
+    QTextBlockFormat blockFormat = cursor.blockFormat();
+    QString formattedText("|");
+   blockFormat.setIndent(blockFormat.indent() + 1);
+  charFormat.setFontPointSize(edit->font().pointSize() + 15);
+   cursor.setBlockFormat(blockFormat);
+    cursor.setCharFormat(charFormat);
+   cursor.insertText(formattedText);
+
+}
+void Window::handleCursorPositionChanged() {
+    QTextCursor cursor = edit->textCursor();
+    QTextTable *table = cursor.currentTable();
+
+    if (table) {
+        addRowButton->setEnabled(true);
+        addColumnButton->setEnabled(true);
+    } else {
+        addRowButton->setEnabled(false);
+        addColumnButton->setEnabled(false);
+    }
+}
+void Window::doLine() {
+    QTextCursor cursor = edit->textCursor();
+    cursor.insertHtml("<hr>");
+}
+
+
+void Window::CodeBlock() {
+    // It's generally better to define these once (e.g., in constructor or a setup method)
+    // and store them as member variables, rather than recreating them every time.
+    // If you already have them as members, remove these local declarations.
+    QTextCharFormat localCodeKeywordFormat;
+    QTextCharFormat localCodeCharFormat;
+    QTextBlockFormat localCodeBlockFormat;
+    QTextCharFormat localCodeVariableFormat;
+    QTextCharFormat localCodeStringFormat;
+    QTextCharFormat localCodeCommentFormat;
+
+    // Initialize local formats (or use member variables if already defined)
+    localCodeCharFormat.setFontFamily("Inconsolata");
+    if (!QFontDatabase::families().contains("Inconsolata")) {
+        localCodeCharFormat.setFontFamily("monospace");
+    }
+    localCodeCharFormat.setFontFixedPitch(true);
+    localCodeCharFormat.setFontPointSize(10);
+    localCodeCharFormat.setForeground(QColor("#DCDCDC")); // Default code text color
+
+    localCodeBlockFormat.setBackground(QColor("#2B2B2B"));
+    localCodeBlockFormat.setTextIndent(0);
+    localCodeBlockFormat.setLeftMargin(20);
+    localCodeBlockFormat.setRightMargin(20);
+    localCodeBlockFormat.setTopMargin(5);
+    localCodeBlockFormat.setBottomMargin(5);
+    localCodeBlockFormat.setIndent(0);
+    localCodeBlockFormat.setNonBreakableLines(true);
+
+    localCodeKeywordFormat.setForeground(QColor("#569CD6")); // Blue
+    localCodeKeywordFormat.setFontWeight(QFont::Bold);
+    localCodeKeywordFormat.setFontFamily(localCodeCharFormat.fontFamily());
+    localCodeKeywordFormat.setFontFixedPitch(true);
+    localCodeKeywordFormat.setFontPointSize(10);
+
+    localCodeStringFormat.setForeground(QColor("#D69D85")); // Orange-ish
+    localCodeStringFormat.setFontFamily(localCodeCharFormat.fontFamily());
+    localCodeStringFormat.setFontFixedPitch(true);
+    localCodeStringFormat.setFontPointSize(10);
+
+    localCodeCommentFormat.setForeground(QColor("#6A9955")); // Green
+    localCodeCommentFormat.setFontFamily(localCodeCharFormat.fontFamily());
+    localCodeCommentFormat.setFontFixedPitch(true);
+    localCodeCommentFormat.setFontPointSize(10);
+
+    localCodeVariableFormat.setForeground(QColor("#00ff7f")); // A light blue/cyan
+    localCodeVariableFormat.setFontFamily(localCodeCharFormat.fontFamily());
+    localCodeVariableFormat.setFontFixedPitch(true);
+    localCodeVariableFormat.setFontPointSize(10);
+
+
+    QTextCursor cursor = edit->textCursor();
+    QTextBlock currentBlock = cursor.block();
+    QTextCharFormat currentCharFormat = cursor.charFormat();
+
+    // Store original cursor position and selection to restore it later
+    int originalPosition = cursor.position();
+    int originalAnchor = cursor.anchor();
+    bool hadSelection = cursor.hasSelection();
+
+    // The comparison should use the *local* formats or *member* formats if they are defined globally
+    bool isCodeBlock = (currentBlock.blockFormat().background() == localCodeBlockFormat.background() &&
+                        qFuzzyCompare(currentBlock.blockFormat().leftMargin(), localCodeBlockFormat.leftMargin()) && // Use qFuzzyCompare for floats
+                        currentCharFormat.fontFamily() == localCodeCharFormat.fontFamily() &&
+                        currentCharFormat.fontFixedPitch() == localCodeCharFormat.fontFixedPitch() &&
+                        qFuzzyCompare(currentCharFormat.fontPointSize(), localCodeCharFormat.fontPointSize())); // Added pointSize check back
+
+
+    cursor.beginEditBlock(); // Start undo/redo block
+
+    if (isCodeBlock) {
+        // Revert to default formatting
+        QTextBlockFormat defaultBlockFormat;
+        QTextCharFormat defaultCharFormat;
+
+        // Apply default format to the entire block
+        cursor.select(QTextCursor::BlockUnderCursor);
+        cursor.setBlockFormat(defaultBlockFormat);
+        cursor.mergeCharFormat(defaultCharFormat); // This merges, usually fine for default
+
+        // Ensure non-breakable lines are reset if needed (for other blocks)
+        QTextBlockFormat newBlockFormat = cursor.blockFormat(); // Get the updated block format
+        newBlockFormat.setNonBreakableLines(false);
+        cursor.setBlockFormat(newBlockFormat); // Re-apply to ensure non-breakable is false
+
+        // Clear character formats for the text within the block
+        // Select the text content (excluding block end)
+        cursor.movePosition(QTextCursor::StartOfBlock, QTextCursor::MoveAnchor);
+        cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+        cursor.mergeCharFormat(defaultCharFormat); // Apply default char format to content
+
+    } else {
+        // Apply main code block formatting
+        cursor.select(QTextCursor::BlockUnderCursor); // Select the entire current block
+        cursor.setBlockFormat(localCodeBlockFormat);
+        cursor.mergeCharFormat(localCodeCharFormat); // Applies monospace font and default code color
+
+        // After applying block-wide format, we need to apply syntax highlighting.
+        // It's safer to work on a COPY of the block's text to prevent issues if text changes.
+        // Also, define the range for highlighting clearly.
+        int blockStartPos = currentBlock.position(); // Absolute start position of the block
+        QString blockText = currentBlock.text();     // Text content of the current block
+
+        // To apply syntax highlighting:
+        // 1. Move a temporary cursor to the start of the block
+        // 2. Format based on matches within the blockText
+        QTextCursor highlightCursor = edit->textCursor();
+        highlightCursor.setPosition(blockStartPos);
+
+        // --- Apply specific colors using the local formats ---
+
+        QStringList keywords = {"void", "int", "class", "return", "if", "else", "for", "while", "array","print","string","echo","cout","cin","printf","bool"};
+        for (const QString& keyword : qAsConst(keywords)) {
+            int index = 0;
+            while ((index = blockText.indexOf(keyword, index, Qt::CaseSensitive)) != -1) {
+                highlightCursor.setPosition(blockStartPos + index, QTextCursor::MoveAnchor);
+                highlightCursor.setPosition(blockStartPos + index + keyword.length(), QTextCursor::KeepAnchor);
+                highlightCursor.mergeCharFormat(localCodeKeywordFormat);
+                index += keyword.length();
+            }
+        }
+
+        // Apply string color
+        QRegularExpression stringRx("\"([^\"]*)\"");
+        QRegularExpressionMatchIterator i = stringRx.globalMatch(blockText);
+        while (i.hasNext()) {
+            QRegularExpressionMatch match = i.next();
+            highlightCursor.setPosition(blockStartPos + match.capturedStart(), QTextCursor::MoveAnchor);
+            highlightCursor.setPosition(blockStartPos + match.capturedEnd(), QTextCursor::KeepAnchor);
+            highlightCursor.mergeCharFormat(localCodeStringFormat);
+        }
+
+        // Apply comment color (basic: "//" to end of line)
+        int commentIndex = blockText.indexOf("//");
+        if (commentIndex != -1) {
+            highlightCursor.setPosition(blockStartPos + commentIndex, QTextCursor::MoveAnchor);
+            highlightCursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor); // Select to end of block
+            highlightCursor.mergeCharFormat(localCodeCommentFormat);
+        }
+        // If you want to color variables, you'd need more sophisticated parsing here.
+        // For now, I'm omitting a general variable highlighting as it's complex.
+    }
+
+    cursor.endEditBlock(); // End undo/redo block
+
+    // Restore original cursor position and selection (if any)
+    if (hadSelection) {
+        cursor.setPosition(originalAnchor, QTextCursor::MoveAnchor);
+        cursor.setPosition(originalPosition, QTextCursor::KeepAnchor);
+    } else {
+        cursor.setPosition(originalPosition, QTextCursor::MoveAnchor);
+    }
+    edit->setTextCursor(cursor); // Ensure the editor uses the updated cursor
+}
+
+
+void Window::handleImagePaste() {
+    qDebug() << "handleImagePaste() called!";
+    const QClipboard *clipboard = QApplication::clipboard();
+    const QMimeData *mimeData = clipboard->mimeData();
+
+    qDebug() << "Available MIME types: " << mimeData->formats();
+
+    if (mimeData->hasImage()) {
+        QImage image = qvariant_cast<QImage>(mimeData->imageData());
+        qDebug() << "Pasting as Image - isNull: " << image.isNull() << ", size: " << image.size();
+
+        if (!image.isNull()) {
+            const int MAX_WIDTH = 600;
+            const int MAX_HEIGHT = 400;
+            if (image.width() > MAX_WIDTH || image.height() > MAX_HEIGHT) {
+                image = image.scaled(MAX_WIDTH, MAX_HEIGHT, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                qDebug() << "Image scaled down to: " << image.size();
+            }
+
+            QByteArray imageData;
+            QBuffer buffer(&imageData);
+            buffer.open(QIODevice::WriteOnly);
+            image.save(&buffer, "PNG");
+            QString base64Image = QString::fromLatin1(imageData.toBase64().data());
+
+            QString html = QString("<img src=\"data:image/png;base64,%1\" width=\"%2\" height=\"%3\" />")
+                               .arg(base64Image)
+                               .arg(image.width())
+                               .arg(image.height());
+
+            QTextCursor cursor = edit->textCursor();
+            cursor.insertHtml(html);
+
+            qDebug() << "Image inserted as Base64 HTML.";
+
+
+        } else {
+            qDebug() << "Error: Could not retrieve image data from clipboard.";
+        }
+    }
+    else if (mimeData->hasHtml()) {
+        qDebug() << "Pasting as HTML - content (first 500 chars): " << mimeData->html().left(500);
+        QTextCursor cursor = edit->textCursor();
+        cursor.insertHtml(mimeData->html());
+    }
+    else if (mimeData->hasText()) {
+        qDebug() << "Pasting as Text - content (first 200 chars): " << mimeData->text().left(200);
+        QTextCursor cursor = edit->textCursor();
+        cursor.insertText(mimeData->text());
+    }
+    else {
+        qDebug() << "Clipboard content not handled (no image, html, or text). Formats:" << mimeData->formats();
+    }
+}
+bool Window::eventFilter(QObject *watched, QEvent *event) {
+    if (watched == edit && event->type() == QEvent::KeyPress) {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent*>(event);
+        if (keyEvent->key() == Qt::Key_V && (keyEvent->modifiers() & Qt::ControlModifier)) {
+            qDebug() << "Ctrl+V pressed on QTextEdit - event filter triggered!";
+            handleImagePaste();
+            return true; // Consume the event to prevent default paste
+        }
+    }
+    return QWidget::eventFilter(watched, event);
+}
+
+//setting aligment of selected text
+void Window::setLeft()
+{
+    edit->setAlignment(Qt::AlignLeft);
+}
+void Window::setRight()
+{
+      edit->setAlignment(Qt::AlignRight);
+}
+void Window::setCenter()
+{
+     edit->setAlignment(Qt::AlignCenter);
+}
+void Window::setIndent()
+{
+    QTextCursor cursor = edit->textCursor();
+
+    if (cursor.hasSelection()) {
+        // Indent all selected blocks (paragraphs)
+        QTextBlockFormat blockFormat = cursor.blockFormat();
+        blockFormat.setIndent(blockFormat.indent() + 1); // Increase the indent level
+        cursor.mergeBlockFormat(blockFormat);
+    } else {
+        // Insert a tab at the current cursor position
+        cursor.insertText("\t");
+}
+}
+
+//A function that would set a list type
+void Window::setList(const QString &listGroup) {
+    QTextListFormat form;
+    QTextCursor cursor = edit->textCursor();
+
+    form.setStart(1);
+     if (listGroup == "Decimal")
+    form.setStyle(QTextListFormat::ListDecimal);
+     else if (listGroup == "Empty circle")
+             form.setStyle(QTextListFormat::ListCircle);
+     else if (listGroup == "Filled circle")
+         form.setStyle(QTextListFormat::ListDisc);
+     else if (listGroup == "Filled square")
+         form.setStyle(QTextListFormat::ListSquare);
+     else if (listGroup == "Lower Alpha")
+         form.setStyle(QTextListFormat::ListLowerAlpha);
+     else if (listGroup == "Upper Alpha")
+         form.setStyle(QTextListFormat::ListUpperAlpha);
+     else if (listGroup == "Lower Roman")
+         form.setStyle(QTextListFormat::ListLowerRoman);
+     else if (listGroup == "Upper Roman")
+         form.setStyle(QTextListFormat::ListUpperRoman);
+     else
+         form.setStyle(QTextListFormat::ListStyleUndefined);
+
+    cursor.createList(form);
+}
+
+void Window::unindentText() {
+    QTextCursor cursor = edit->textCursor();
+
+    QTextBlockFormat blockFormat = cursor.blockFormat();
+    if (blockFormat.indent() > 0) {
+        blockFormat.setIndent(blockFormat.indent() - 1);
+        cursor.mergeBlockFormat(blockFormat);
+    } else if (!cursor.hasSelection() && cursor.positionInBlock() == 0) {
+        // If at the start of a line and no indent, maybe remove a leading tab
+        cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, 1);
+        if (cursor.selectedText() == "\t") {
+            cursor.removeSelectedText();
+        } else {
+            cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1); // Deselect
+        }
+        // Connect this to another action or shortcut (e.g., Shift+Tab)
+        QAction *unindentAction = new QAction("Unindent", this);
+        unindentAction->setShortcut(QKeySequence("Shift+Tab"));
+        connect(unindentAction, &QAction::triggered, this, &Window::unindentText);
+    }
+}
+
+void Window::setFont(const QString &fontName)
+{
+
+    currentFont = fontName;
+    QTextCursor cursor = edit->textCursor();
+    if (cursor.hasSelection()) {
+        QTextCharFormat format;
+        format.setFontFamily(currentFont);
+        cursor.mergeCharFormat(format);
+    } else {
+        QFont font = edit->font();
+        font.setFamily(currentFont);
+         edit->setFont(font);
+    }
+}
+void Window::setTextColor(const QString &colorName)
+{
+    currentColor = QColor(colorName);
+    QTextCursor cursor = edit->textCursor();
+    if (cursor.hasSelection()) {
+        QTextCharFormat format;
+        format.setForeground(currentColor);
+        cursor.mergeCharFormat(format);
+    } else {
+        QPalette palette = edit->palette();
+        palette.setColor(QPalette::Text, currentColor);
+        edit->setPalette(palette);
+    }
+    if (colorName == "Custom...") {
+        QColor color;
+         color = QColorDialog::getColor(currentColor, this, "Select Text Color");
+        if (!color.isValid()) return;
+        QTextCursor cursor = edit->textCursor();
+        QTextCharFormat format;
+        format.setForeground(color);
+        if (cursor.hasSelection()) {
+            cursor.mergeCharFormat(format);
+        } else {
+            edit->mergeCurrentCharFormat(format);
+        }
+
+    }
+}
+//SET BUCKET COLOR
+void Window::setBucketColor(const QString &colorName)
+{
+    QColor selectedColor = QColor(colorName);
+    currentbucketColor = QColor(colorName);
+    QTextCursor cursor = edit->textCursor();
+
+    if (cursor.hasSelection()) {
+        QTextCharFormat charFormat;
+        if (colorName == "Default") selectedColor = QColor(32,32,32);
+        charFormat.setBackground(selectedColor);
+
+        cursor.mergeCharFormat(charFormat);
+    }
+
+
+if (colorName == "Custom...") {
+    QColor color;
+    color = QColorDialog::getColor(currentbucketColor, this, "Select Text Color");
+    if (!color.isValid()) return;
+    QTextCursor cursor = edit->textCursor();
+    QTextCharFormat format;
+    format.setBackground(color);
+    if (cursor.hasSelection()) {
+        cursor.mergeCharFormat(format);
+    } else {
+        edit->mergeCurrentCharFormat(format);
+    }
+
+
+}
+}
+//function for setting underline
+void Window::setUnderlineStyle(const QString &underlineType)
+{
+    QTextCharFormat format;
+
+
+    if (underlineType == "Single") {
+        format.setUnderlineStyle(QTextCharFormat::SingleUnderline);
+        currentUnderlineStyle = SingleUnderline;
+    }
+    else if (underlineType == "Dash Dotted") {
+        format.setUnderlineStyle(QTextCharFormat::DashDotLine);
+        currentUnderlineStyle = DoubleUnderline; //HERE REPAIR
+    }
+    else if (underlineType == "Dotted") {
+        format.setUnderlineStyle(QTextCharFormat::DotLine);
+        currentUnderlineStyle = DottedUnderline;
+    }
+    else if (underlineType == "Wavy") {
+        format.setUnderlineStyle(QTextCharFormat::WaveUnderline);
+        currentUnderlineStyle = WaveUnderline;
+    }
+    else if (underlineType == "Dashed") {
+        format.setUnderlineStyle(QTextCharFormat::DashUnderline);
+        currentUnderlineStyle = DashUnderline;
+    }
+
+    else {
+        format.setUnderlineStyle(QTextCharFormat::NoUnderline);
+        currentUnderlineStyle = NoUnderline;
+    }
+
+    QTextCursor cursor = edit->textCursor();
+    if (cursor.hasSelection()) {
+        cursor.mergeCharFormat(format);
+    } else {
+        // Apply to new text
+        edit->mergeCurrentCharFormat(format);
+    }
+}
+
+void Window::setBorderlineStyle(const QString &BorderType) {
+    QTextCursor cursor1 = edit->textCursor();
+
+    QTextFrameFormat frameFormat;
+
+    // Create the border brush (white color in this case)
+    QBrush borderBrush(Qt::white);
+
+
+    if (BorderType == "Solid") {
+       frameFormat.setBorderStyle(QTextFrameFormat::BorderStyle_Solid);
+             // currentBorderlineStyle = Solid;
+    }
+    else if (BorderType == "Dotted") {
+         frameFormat.setBorderStyle(QTextFrameFormat::BorderStyle_Dotted);
+           // currentBorderlineStyle = Dotted;
+    }
+    else if (BorderType == "Dashed") {
+     frameFormat.setBorderStyle(QTextFrameFormat::BorderStyle_Dashed);
+            //currentBorderlineStyle= Dashed;
+    }
+    else if (BorderType == "Double") {
+       frameFormat.setBorderStyle(QTextFrameFormat::BorderStyle_Double);
+           //currentBorderlineStyle = Double;
+    }
+    else if (BorderType== "DotDash") {
+         frameFormat.setBorderStyle(QTextFrameFormat::BorderStyle_DotDash);
+            //currentBorderlineStyle= DotDash;
+    }
+    else if (BorderType== "DotDotDash") {
+       frameFormat.setBorderStyle(QTextFrameFormat::BorderStyle_DotDotDash);
+        //currentBorderlineStyle= DotDotDash;
+    }
+    else if (BorderType== "Groove") {
+        frameFormat.setBorderStyle(QTextFrameFormat::BorderStyle_Groove);
+        //currentBorderlineStyle= Groove;
+    }
+
+    else if (BorderType== "Ridge") {
+        frameFormat.setBorderStyle(QTextFrameFormat::BorderStyle_Ridge);
+        //currentBorderlineStyle= Ridge;
+    }
+
+    else if (BorderType== "Inset") {
+        frameFormat.setBorderStyle(QTextFrameFormat::BorderStyle_Inset);
+        //currentBorderlineStyle=Inset;
+    }
+    else if (BorderType== "Outset") {
+        frameFormat.setBorderStyle(QTextFrameFormat::BorderStyle_Outset);
+       // currentBorderlineStyle=Outset;
+    }
+    else {
+        frameFormat.setBorderStyle(QTextFrameFormat::BorderStyle_None);
+            //currentBorderlineStyle = None;
+        return;
+    }
+
+
+    if (cursor1.hasSelection()) {
+       frameFormat.setBorderBrush(borderBrush);
+
+       frameFormat.setBorder(1);
+        cursor1.insertFrame(frameFormat);
+    }
+}
+
+// Save the application state
+void Window::saveState() {
+    // Save current page content first
+    if (currentPage && currentPage->parent()) {
+        savePageContent();
+    }
+
+    QString configPath = getConfigPath();
+    QSettings settings(configPath, QSettings::IniFormat);
+
+    // Save editor preferences
+    settings.setValue("Editor/Font", currentFont);
+    settings.setValue("Editor/Size", currentSize);
+    settings.setValue("Editor/Color", currentColor.name());
+    settings.setValue("AppStyle/AppFontFamily", currentFont);       // Use currentFont for app-wide font family
+    settings.setValue("AppStyle/AppFontSize", currentfontSize);     // Use currentfontSize for app-wide font size
+    settings.setValue("AppStyle/AppBgColor", currentAppColor);      // Main window background
+    settings.setValue("AppStyle/NoteTextColor", currentNoteColor);  // NoteTree text and toolbar/menu text
+    settings.setValue("AppStyle/ToolbarBgColor", currentToolbarColor);
+
+
+    // Save the complete notebook structure
+    saveNotebookStructure();
+
+    settings.sync();
+}
+
+void Window::restoreState() {
+    QString configPath = getConfigPath();
+    QSettings settings(configPath, QSettings::IniFormat);
+
+    // Restore the notebook structure with all content
+    restoreNotebookStructure();
+
+    // Restore editor formatting preferences
+    if (settings.contains("Editor/Font")) {
+        setFont(settings.value("Editor/Font").toString());
+    }
+    if (settings.contains("Editor/Size")) {
+        setSize(settings.value("Editor/Size").toInt());
+    }
+    if (settings.contains("Editor/Color")) {
+        setTextColor(settings.value("Editor/Color").toString());
+    }
+    if (settings.contains("AppStyle/AppFontFamily")) { // Assuming this is where you save App Font Family
+        setAppFont(settings.value("AppStyle/AppFontFamily", "Arial").toString());
+    }
+    if (settings.contains("AppStyle/AppFontSize")) { // This refers to your 'currentfontSize'
+        int restoredSize = settings.value("AppStyle/AppFontSize", 10).toInt();
+        setfontSize(restoredSize);
+    }
+    if (settings.contains("AppStyle/AppBgColor")) { // This refers to your 'currentAppColor'
+        setAppColor(settings.value("AppStyle/AppBgColor", "#202020").toString());
+    }
+    if (settings.contains("AppStyle/NoteTextColor")) { // This refers to your 'currentNoteColor'
+        setNoteColor(settings.value("AppStyle/NoteTextColor", "#FFFFFF").toString());
+    }
+    if (settings.contains("AppStyle/ToolbarBgColor")) { // This refers to your 'currentToolbarColor'
+        setToolbarColor(settings.value("AppStyle/ToolbarBgColor", "#303030").toString());
+    }
+
+    // Automatically select and load the first page
+    if (NoteTree->topLevelItemCount() > 1) { // Exclude "+ Add Notebook"
+        QTreeWidgetItem* firstNotebook = NoteTree->topLevelItem(0);
+        if (firstNotebook && firstNotebook->childCount() > 1) { // Exclude "+ Add Page"
+            QTreeWidgetItem* firstPage = firstNotebook->child(0);
+            NoteTree->setCurrentItem(firstPage);
+            loadPageContent(firstPage);
+        }
+    }
+}
+
+QString Window::getConfigPath() {
+    return QCoreApplication::applicationDirPath() + "/notebook_config.ini";
+}
+
+//HERE
+void Window::addNotebook() {
+    bool ok;
+    QString name = QInputDialog::getText(this, "New Notebook", "Notebook Name:", QLineEdit::Normal, "notebook1", &ok);
+
+    if (ok && !name.isEmpty()) {
+        QTreeWidgetItem* notebookItem = new QTreeWidgetItem(NoteTree);
+        notebookItem->setText(0, name);
+        notebookItem->setFlags(notebookItem->flags() | Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+
+        QTreeWidgetItem* addPageItem = new QTreeWidgetItem(notebookItem);
+        addPageItem->setText(0, "+ Add Page");
+
+        notebookData[name] = QMap<QString, QString>();
+
+        addPage(notebookItem);
+        notebookItem->setExpanded(true);
+    }
+}
+
+
+void Window::addPage(QTreeWidgetItem* notebookItem) {
+    if (!notebookItem || notebookItem->text(0) == "+ Add Notebook") return;
+
+    if (currentPage && currentPage->parent() && currentPage->text(0) != "+ Add Page") {
+        savePageContent();
+    }
+
+    QString notebookName = notebookItem->text(0);
+    QTreeWidgetItem* pageItem = new QTreeWidgetItem();
+    int pageNum = notebookItem->childCount();
+
+    pageItem->setText(0, QString("New Page %1").arg(pageNum));
+    pageItem->setFlags(pageItem->flags() | Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+
+    int insertPos = qMax(0, notebookItem->childCount() - 1);
+    notebookItem->insertChild(insertPos, pageItem);
+
+    if (!notebookData.contains(notebookName)) {
+        notebookData[notebookName] = QMap<QString, QString>();
+    }
+    notebookData[notebookName][pageItem->text(0)] = "";
+
+    NoteTree->setCurrentItem(pageItem);
+    currentPage = pageItem;
+
+    if (edit) {
+        edit->clear();
+    }
+}
+//function that provides printing dialog
+void Window::printing() {
+    QPrinter printer;
+    QPrintDialog printDialog(&printer, this);
+    if (printDialog.exec() == QDialog::Accepted) {
+        edit->print(&printer);
+    }
+}
+
+//function to insert a file to our textEdit
+void Window::insertingFile() {
+
+    QFileDialog dialog(this);
+    dialog.setFileMode(QFileDialog::AnyFile);
+    dialog.setNameFilter(tr("Rich Text Files (*.rtf);;Images (*.png *.xpm *.jpg);;Text files (*.txt);;All files (*.*)"));
+    dialog.setViewMode(QFileDialog::Detail);
+    QStringList fileNames;
+    if (dialog.exec()) {
+        fileNames = dialog.selectedFiles();
+        if (!fileNames.isEmpty()) {
+            QString filePath = fileNames.first();
+            QFileInfo fileInfo(filePath);
+            QString fileExtension = fileInfo.suffix().toLower();
+            if (fileExtension == "txt") {
+                QFile file(filePath);
+                if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                    QTextStream in(&file);
+                    QString fileContent = in.readAll();
+                    file.close();
+                    edit->insertPlainText(fileContent);
+                } else {
+                    QMessageBox::critical(this, tr("Error"), tr("Could not open text file."));
+
+                }
+
+            } else if (fileExtension == "rtf") {
+                QFile file(filePath);
+                if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                    QTextStream in(&file);
+                    QString rtfContent = in.readAll();
+                    file.close();
+                    QTextDocument doc;
+                    doc.setHtml(rtfContent);
+                    QByteArray rtfData = rtfContent.toUtf8();
+                    doc.setPlainText(QString::fromUtf8(rtfData));
+                    doc.setHtml(QString(rtfData));
+                    edit->setAcceptRichText(true);
+                    edit->setText(rtfContent);
+
+                } else {
+
+                    QMessageBox::critical(this, tr("Error"), tr("Could not open RTF file."));
+                }
+            }
+            else if (fileExtension == "png" || fileExtension == "xpm" || fileExtension == "jpg") {
+                QImageReader reader(filePath);
+                if (reader.canRead()) {
+                    QUrl imageUrl = QUrl::fromLocalFile(filePath);
+                    edit->insertHtml(QString("<img src=\"%1\">").arg(imageUrl.toString()));
+                } else {
+                    QMessageBox::critical(this, tr("Error"), tr("Could not read image file or unsupported format."));
+                }
+            } else {
+                QMessageBox::warning(this, tr("Warning"), tr("Unsupported file format."));
+
+            }
+
+        }
+
+    }
+
+}
+//function from saving text to file from text edit
+
+//void Window::resizeEvent(QResizeEvent* event) {
+void Window::savingFile() {
+    QString selectedFilter;
+    QString fileName = QFileDialog::getSaveFileName(this,
+        tr("Save As"), "",
+        tr("Rich Text Files (*.rtf);;Text files (*.txt);;HTML Files (*.html);;Markdown Files (*.md);;PDF Files (*.pdf);;All files (*)"),
+        &selectedFilter);
+
+    if (fileName.isEmpty())
+        return;
+
+    // Speciální případ pro PDF (nepoužívá QFile přímo stejným způsobem)
+    if (selectedFilter == "PDF Files (*.pdf)") {
+        QPrinter printer(QPrinter::HighResolution);
+        printer.setOutputFormat(QPrinter::PdfFormat);
+        printer.setOutputFileName(fileName);
+        edit->print(&printer);
+        return;
+    }
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(this, tr("Error"), tr("Could not open file for writing."));
+        return;
+    }
+
+    QTextStream out(&file);
+
+    if (selectedFilter == "Rich Text Files (*.rtf)" || selectedFilter == "HTML Files (*.html)") {
+        out << edit->toHtml();
+    }
+    else if (selectedFilter == "Markdown Files (*.md)") {
+        out << edit->toMarkdown();
+    }
+    else {
+        out << edit->toPlainText();
+    }
+
+    file.close();
+}
+
+
+void Window::savePageContent() {
+    qDebug() << "--- savePageContent() called ---";
+    if (!currentPage || !currentPage->parent() || currentPage->text(0) == "+ Add Page") {
+        qDebug() << "  currentPage is invalid, returning.";
+        return;
+    }
+
+    QString notebookName = currentPage->parent()->text(0);
+    QString pageName = currentPage->text(0);
+    QString uniqueKey = QString("%1_%2").arg(notebookName, pageName);
+
+    qDebug() << "  Saving content for notebook:" << notebookName << ", page:" << pageName;
+    qDebug() << "  Unique Key being used to save:" << uniqueKey;
+    qDebug() << "  Content (first 50 chars):" << edit->document()->toHtml().left(50); // Changed to toHtml()
+    qDebug() << "  Current currentPage text:" << currentPage->text(0);
+    qDebug() << "  Current currentPage parent text:" << currentPage->parent()->text(0);
+
+    // Save the content as HTML to preserve images
+    notebookData[notebookName][pageName] = edit->document()->toHtml();
+
+    // Save to settings with unique key
+    QSettings settings(getConfigPath(), QSettings::IniFormat);
+    settings.beginGroup("PageContents");
+    settings.setValue(uniqueKey, edit->document()->toHtml()); // Changed to toHtml()
+    settings.endGroup();
+    settings.sync();
+
+    contentModified = false;
+    qDebug() << "--- savePageContent() finished ---";
+}
+
+void Window::loadPageContent(QTreeWidgetItem* page) {
+    qDebug() << "--- loadPageContent() called ---";
+    if (!page || !page->parent() || page->text(0) == "+ Add Page") {
+        qDebug() << "  Loading invalid page, clearing edit and returning.";
+        edit->clear();
+        currentPage = nullptr;
+        return;
+    }
+
+    QString notebookName = page->parent()->text(0);
+    QString pageName = page->text(0);
+    qDebug() << "  Loading content for notebook:" << notebookName << ", page:" << pageName;
+    QString uniqueKey = QString("%1_%2").arg(notebookName, pageName);
+    qDebug() << "  Unique Key to load:" << uniqueKey;
+
+    QSettings settings(getConfigPath(), QSettings::IniFormat);
+    settings.beginGroup("PageContents");
+    QString content = settings.value(uniqueKey).toString();
+    settings.endGroup();
+
+    // Debugging: Show a snippet of the loaded content to verify it contains image data
+    qDebug() << "  Loaded content (first 1000 chars):" << content.left(1000);
+
+    if (!content.isEmpty()) {
+        edit->document()->setHtml(content); // This is the crucial part that will now load Base64 images
+        if (edit->document()->isEmpty()) {
+            qDebug() << "Error: QTextDocument is empty after setting HTML.";
+        } else if (edit->document()->rootFrame()->childFrames().isEmpty() && content.contains("<img")) {
+            qDebug() << "Warning: No image frames found after loading HTML with <img> tag.";
+        }
+        notebookData[notebookName][pageName] = content;
+        qDebug() << "  Content loaded from settings.";
+    } else {
+        edit->clear(); // Clear if no content found
+        qDebug() << "  No content found for this page, clearing editor.";
+    }
+
+    currentPage = page;
+    contentModified = false;
+    qDebug() << "  currentPage is now:" << (currentPage ? currentPage->text(0) : "nullptr");
+    qDebug() << "--- loadPageContent() finished ---";
+}
+
+
+void Window::saveNotebookStructure() {
+    QSettings settings(getConfigPath(), QSettings::IniFormat);
+
+    // Don't clear all settings, just the notebook structure
+    settings.remove("Notebooks");
+
+    // Save current page before saving structure
+    if (currentPage && currentPage->parent()) {
+        savePageContent();
+    }
+
+    settings.beginWriteArray("Notebooks");
+    int notebookIndex = 0;
+
+    for (int i = 0; i < NoteTree->topLevelItemCount(); i++) {
+        QTreeWidgetItem* notebookItem = NoteTree->topLevelItem(i);
+        if (!notebookItem || notebookItem->text(0) == "+ Add Notebook") continue;
+
+        QString notebookName = notebookItem->text(0);
+        settings.setArrayIndex(notebookIndex++);
+        settings.setValue("Name", notebookName);
+
+        // Save the icon path or identifier
+        settings.setValue("Icon", notebookItem->icon(0).name()); // Save the path/name of the icon
+
+        settings.beginWriteArray("Pages");
+        int pageIndex = 0;
+
+        for (int j = 0; j < notebookItem->childCount(); j++) {
+            QTreeWidgetItem* pageItem = notebookItem->child(j);
+            if (!pageItem || pageItem->text(0) == "+ Add Page") continue;
+
+            QString pageName = pageItem->text(0);
+            settings.setArrayIndex(pageIndex++);
+            settings.setValue("Name", pageName);
+        }
+        settings.endArray();
+    }
+    settings.endArray();
+    settings.sync();
+}
+void Window::restoreNotebookStructure() {
+    QSettings settings(getConfigPath(), QSettings::IniFormat);
+
+    notebookData.clear();
+    NoteTree->clear();
+
+    // First restore the structure
+    int notebookCount = settings.beginReadArray("Notebooks");
+    for (int i = 0; i < notebookCount; i++) {
+        settings.setArrayIndex(i);
+        QString notebookName = settings.value("Name").toString();
+        QString iconName = settings.value("Icon").toString(); // Load the icon name
+
+        QTreeWidgetItem* notebookItem = new QTreeWidgetItem(NoteTree);
+        notebookItem->setText(0, notebookName);
+        if (!iconName.isEmpty()) {
+            notebookItem->setIcon(0, QIcon(iconName)); // Set the icon when restoring
+        } else {
+            notebookItem->setIcon(0, QIcon(":/notebook")); // Set a default icon if none was saved
+        }
+        notebookItem->setFlags(notebookItem->flags() | Qt::ItemIsEditable | Qt::ItemIsSelectable);
+
+        notebookData[notebookName] = QMap<QString, QString>();
+
+        int pageCount = settings.beginReadArray("Pages");
+        for (int j = 0; j < pageCount; j++) {
+            settings.setArrayIndex(j);
+            QString pageName = settings.value("Name").toString();
+
+            QTreeWidgetItem* pageItem = new QTreeWidgetItem(notebookItem);
+            pageItem->setText(0, pageName);
+            pageItem->setFlags(pageItem->flags() | Qt::ItemIsEditable | Qt::ItemIsSelectable);
+
+            // Load the page content immediately after creating the page item
+            settings.beginGroup("PageContents");
+            QString uniqueKey = QString("%1_%2").arg(notebookName, pageName);
+            QString content = settings.value(uniqueKey).toString();
+            settings.endGroup();
+
+            notebookData[notebookName][pageName] = content;
+        }
+        settings.endArray();
+
+        // Add "+ Add Page" item
+        QTreeWidgetItem* addPageItem = new QTreeWidgetItem(notebookItem);
+        addPageItem->setText(0, "+ Add Page");
+        addPageItem->setFlags(addPageItem->flags() | Qt::ItemIsSelectable);
+    }
+    settings.endArray();
+
+    // Add "+ Add Notebook" item
+    QTreeWidgetItem* addNotebookItem = new QTreeWidgetItem(NoteTree);
+    addNotebookItem->setText(0, "+ Add Notebook");
+    addNotebookItem->setFlags(addNotebookItem->flags() | Qt::ItemIsSelectable);
+}
+// Setup notebook tree connections
+void Window::saveContentForPage(QTreeWidgetItem* pageItem) {
+    qDebug() << "--- saveContentForPage() called ---";
+    if (!pageItem || !pageItem->parent() || pageItem->text(0) == "+ Add Page") {
+        qDebug() << "  Invalid page item provided for saving.";
+        return;
+    }
+
+    QString notebookName = pageItem->parent()->text(0);
+    QString pageName = pageItem->text(0);
+    QString uniqueKey = QString("%1_%2").arg(notebookName, pageName);
+
+    qDebug() << "  Saving content for notebook:" << notebookName << ", page:" << pageName;
+    qDebug() << "  Unique Key:" << uniqueKey;
+    qDebug() << "  Content (first 50 chars):" << edit->toPlainText().left(50);
+
+    notebookData[notebookName][pageName] = edit->toHtml();
+    QSettings settings(getConfigPath(), QSettings::IniFormat);
+    settings.beginGroup("PageContents");
+    settings.setValue(uniqueKey, edit->toHtml());
+    settings.endGroup();
+    settings.sync();
+
+    qDebug() << "--- saveContentForPage() finished ---";
+}
+
+void Window::setupNotebookConnections() {
+    disconnect(NoteTree, &QTreeWidget::itemClicked, 0, 0);
+
+    connect(NoteTree, &QTreeWidget::itemClicked, this, [this](QTreeWidgetItem* clickedItem) {
+        if (!clickedItem) return;
+
+        if (clickedItem->text(0) == "+ Add Notebook" && !clickedItem->parent()) {
+            addNotebook();
+        } else if (clickedItem->text(0) == "+ Add Page" && clickedItem->parent()) {
+            addPage(clickedItem->parent());
+        } else if (clickedItem->parent() && clickedItem != currentPage) {
+            qDebug() << "--- Page switch detected ---";
+            qDebug() << "  Current page before switch:" << (currentPage ? currentPage->text(0) : "nullptr");
+            qDebug() << "  Clicked item:" << clickedItem->text(0);
+
+            QTreeWidgetItem* previousPage = currentPage;
+
+
+            if (previousPage && previousPage->parent() && previousPage->text(0) != "+ Add Page") {
+                qDebug() << "  Saving content of previous page.";
+                savePageContent(); // This function uses the current currentPage at the time of call
+            } else {
+                qDebug() << "  No valid current page to save.";
+            }
+
+
+            qDebug() << "  Loading content for clicked item.";
+            loadPageContent(clickedItem);
+            qDebug() << "--- Page switch handling finished ---";
+        }
+
+    });
+
+    // Handle renaming
+    connect(NoteTree, &QTreeWidget::itemChanged, this, [this](QTreeWidgetItem* item, int column) {
+        // ... renaming logic ...
+    });
+}
+// Handle window close
+void Window::closeEvent(QCloseEvent* event) {
+    saveState();
+
+    QWidget::closeEvent(event);
+}
